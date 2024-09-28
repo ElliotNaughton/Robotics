@@ -1,8 +1,10 @@
+#ifndef ROBOTCONTROL_HPP
+#define ROBOTCONTROL_HPP
 #include <Arduino.h>
 #include <ESP32Servo.h>
 #include <Ps3Controller.h>
 
-class robot{
+class robotControl{
     private:
 
     Servo motor1; //front left motor
@@ -10,13 +12,8 @@ class robot{
     Servo motor3; //back left motor
     Servo motor4; //back right motor
     Servo servo1; //close open plow motor
-    Servo motor5; //motor for hanging right
-    Servo motor6; //motor for hanging left
-    int analogVar;
-    int pwmWriteFw;  //PWM varialble for forward
-    int pwmWriteBk;  //PWM variable for backward
-
-    
+    Servo motor5; //motor for hanging | right side
+    Servo motor6; //motor for hanging | left side
 
     public: 
         
@@ -24,6 +21,11 @@ class robot{
     int midUs;//mid range PWM
     int maxUs;//maximum PWM
 
+    //Ps3 Controller maximum and miniumum position values
+    int ps3MaxAnalogNeg;
+    int ps3MaxAnalogPos;
+
+    //pins which the motors will recieve PWM signals from
     int motor1Pin;
     int motor2Pin;
     int motor3Pin;
@@ -31,6 +33,8 @@ class robot{
     int servo1Pin;
     int motor5Pin;
     int motor6Pin;
+
+    int pwmHertz;//Freq of the PWM signal
 
 
 
@@ -40,6 +44,10 @@ class robot{
     void rightShift(int analogVar);
     void leftShift(int analogVar);
     void CW(int analogVar);
+    void CCW(int analogVar);
 
 
 };
+
+
+#endif //ROBOTCONTROL_H

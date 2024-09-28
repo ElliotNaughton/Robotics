@@ -1,34 +1,31 @@
 #include <Arduino.h>
 #include <ESP32Servo.h>
 #include <Ps3Controller.h>
+#include "robotControl.hpp"
 
-Servo motor1; //front left motor
-Servo motor2; //front right motor
-Servo motor3; //back left motor
-Servo motor4; //back right motor
-Servo servo1; //close open plow motor
-Servo motor5; //motor for hanging right
-Servo motor6; //motor for hanging left
 
-int minUs = 1050; //minumum PWM
-int midUs = 1500; //mid range PWN
-int maxUs = 1950; //maximum PWM
+robotControl robot;
 
-int motor1Pin = 11;
-int motor2Pin = 12;
-int motor3Pin = 13;
-int motor4Pin = 14;
-int servo1Pin = 4;
-
-ESP32PWM pwm;
-
-int ps3MaxAnalogNeg = -130;
-int ps3MaxAnalogPos = 130;
-int zero = 0;
 int ps3StickRead;
-int pwmWrite;
 
 void setup() {
+
+  robot.minUs = 1050; //minumum PWM
+  robot.midUs = 1500; //mid range PWN
+  robot.maxUs = 1950; //maximum PWM
+
+  robot.motor1Pin = 11; //motor 1 pin
+  robot.motor2Pin = 12; //motor 2 pin
+  robot.motor3Pin = 13; //motor 3 pin
+  robot.motor4Pin = 14; //motor 4 pin
+  robot.servo1Pin = 4;  //servo 1 pin
+  robot.motor5Pin = 39; //climbing motor right side pin
+  robot.motor6Pin = 21; //climbing motor left side pin
+
+  robot.ps3MaxAnalogNeg = -130;
+  robot.ps3MaxAnalogPos = 130;
+
+  robot.pwmHertz = 50; //Stanard 50hz PWM Freq
 	
   Serial.begin(115200);
 
@@ -37,7 +34,7 @@ void setup() {
 
 
 
-
+  robot.runAtSetup();
 }
 
 void loop()
@@ -51,11 +48,11 @@ void loop()
   if(Ps3.event.analog_changed.stick.lx){
       
     if(Ps3.data.analog.stick.lx > 0){
-      rightShift(Ps3.data.analog.stick.lx);
+      robot.rightShift(Ps3.data.analog.stick.lx);
     }
 
     if(Ps3.data.analog.stick.lx < 0){
-      leftShift(Ps3.data.analog.stick.lx);
+      robot.leftShift(Ps3.data.analog.stick.lx);
     }
     
   }
@@ -65,11 +62,11 @@ void loop()
     ps3StickRead = Ps3.data.analog.stick.ly;
     
     if(Ps3.data.analog.stick.ly > 0){
-      forward(Ps3.data.analog.stick.ly);
+      robot.forward(Ps3.data.analog.stick.ly);
     }
 
     if(Ps3.data.analog.stick.ly < 0){
-      backward(Ps3.data.analog.stick.ly);
+      robot.backward(Ps3.data.analog.stick.ly);
     }
 
   }  
@@ -78,11 +75,11 @@ void loop()
   if(Ps3.event.analog_changed.stick.rx){
       
     if(Ps3.data.analog.stick.rx > 0){
-      rightShift(Ps3.data.analog.stick.rx);
+      robot.rightShift(Ps3.data.analog.stick.rx);
     }
 
     if(Ps3.data.analog.stick.rx < 0){
-      leftShift(Ps3.data.analog.stick.rx);
+      robot.leftShift(Ps3.data.analog.stick.rx);
     }
     
   }  
