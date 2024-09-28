@@ -39,7 +39,7 @@ class robot{
     void backward(int analogVar);
     void rightShift(int analogVar);
     void leftShift(int analogVar);
-    void CW(int analogVar):
+    void CW(int analogVar);
 
 
 };
