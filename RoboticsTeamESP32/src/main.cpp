@@ -4,9 +4,66 @@
 #include "robotControl.hpp"
 
 
+
 robotControl robot;
 
+int ps3StickDeadzone = 4;
 int ps3StickRead;
+
+void ps3ReadPwmWrite(void * parameter){
+  for(;;){
+  if (Ps3.isConnected()){
+    Serial.println("Connected!");
+  }
+
+    //Horizontal Movement of the Left Stick
+  if(Ps3.event.analog_changed.stick.lx){
+      
+    if(Ps3.data.analog.stick.lx > ps3StickDeadzone){
+      robot.rightShift(Ps3.data.analog.stick.lx);
+    }
+
+    if(Ps3.data.analog.stick.lx < -ps3StickDeadzone){
+      robot.leftShift(Ps3.data.analog.stick.lx);
+    }
+    
+  }
+
+    //Vertical movement of the Left sick
+  if(Ps3.event.analog_changed.stick.ly){
+    ps3StickRead = Ps3.data.analog.stick.ly;
+    
+    if(Ps3.data.analog.stick.ly < -ps3StickDeadzone){
+      robot.forward(Ps3.data.analog.stick.ly);
+    }
+
+    if(Ps3.data.analog.stick.ly > ps3StickDeadzone){
+      robot.backward(Ps3.data.analog.stick.ly);
+    }
+
+  }  
+
+    //Horizontal movement of the Right Stick
+  if(Ps3.event.analog_changed.stick.rx){
+      
+    if(Ps3.data.analog.stick.rx > ps3StickDeadzone){
+      robot.CW(Ps3.data.analog.stick.rx);
+    }
+
+    if(Ps3.data.analog.stick.rx < -ps3StickDeadzone){
+      robot.CCW(Ps3.data.analog.stick.rx);
+    }
+    
+  }  
+
+    //Vertical movement of the Right Stick
+  if(Ps3.event.analog_changed.stick.ry){
+    ps3StickRead = Ps3.data.analog.stick.ry;
+    
+
+  }  
+  }
+}
 
 void setup() {
 
@@ -35,64 +92,19 @@ void setup() {
 
 
   robot.runAtSetup();
+
+ xTaskCreate(
+    ps3ReadPwmWrite,    // Function that should be called
+    "PS3 Read PWM Write",  // Name of the task (for debugging)
+    10000,            // Stack size (bytes)
+    NULL,            // Parameter to pass
+    5,               // Task priority
+    NULL             // Task handle
+);
+
 }
 
 void loop()
 {
-
-  if (Ps3.isConnected()){
-    Serial.println("Connected!");
-  }
-
-    //Horizontal Movement of the Left Stick
-  if(Ps3.event.analog_changed.stick.lx){
-      
-    if(Ps3.data.analog.stick.lx > 0){
-      robot.rightShift(Ps3.data.analog.stick.lx);
-    }
-
-    if(Ps3.data.analog.stick.lx < 0){
-      robot.leftShift(Ps3.data.analog.stick.lx);
-    }
-    
-  }
-
-    //Vertical movement of the Left sick
-  if(Ps3.event.analog_changed.stick.ly){
-    ps3StickRead = Ps3.data.analog.stick.ly;
-    
-    if(Ps3.data.analog.stick.ly > 0){
-      robot.forward(Ps3.data.analog.stick.ly);
-    }
-
-    if(Ps3.data.analog.stick.ly < 0){
-      robot.backward(Ps3.data.analog.stick.ly);
-    }
-
-  }  
-
-    //Horizontal movement of the Right Stick
-  if(Ps3.event.analog_changed.stick.rx){
-      
-    if(Ps3.data.analog.stick.rx > 0){
-      robot.rightShift(Ps3.data.analog.stick.rx);
-    }
-
-    if(Ps3.data.analog.stick.rx < 0){
-      robot.leftShift(Ps3.data.analog.stick.rx);
-    }
-    
-  }  
-
-    //Vertical movement of the Right Stick
-  if(Ps3.event.analog_changed.stick.ry){
-    ps3StickRead = Ps3.data.analog.stick.ry;
-    
-
-  }  
-
-
-
-
 
 }

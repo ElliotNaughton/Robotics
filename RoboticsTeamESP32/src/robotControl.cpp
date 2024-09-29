@@ -35,12 +35,10 @@ void robotControl::runAtSetup(){
 
     void robotControl::forward(int analogVar){
 
-        abs(analogVar);   //Ensuring the number is positive
+        analogVar = abs(analogVar);   //Ensuring the number is positive
         int pwmWriteFw;  //Initialzing Forward
-        int pwmWriteBk;  //and backward Analog variables
 
         pwmWriteFw = map(analogVar, 0, ps3MaxAnalogPos, midUs, maxUs); //Mapping analog value from controller to pwm for forward 
-        pwmWriteBk = map(analogVar * -1, ps3MaxAnalogNeg, 0, minUs, midUs);  //Mapping analog value from controller to pwm for backward
 
         //Writing pwm signal for motor controllers
         motor1.write(pwmWriteFw);
@@ -52,12 +50,10 @@ void robotControl::runAtSetup(){
 
     void robotControl::backward(int analogVar){
     
-        abs(analogVar);   //Ensuring the number is positive
-        int pwmWriteFw;  //PWM varialble for forward
+        analogVar = abs(analogVar);   //Ensuring the number is positive
         int pwmWriteBk;  //PWM variable for backward
 
-        pwmWriteFw = map(analogVar, 0, ps3MaxAnalogPos, midUs, maxUs); //Mapping analog value from controller to pwm for forward 
-        pwmWriteBk = map(analogVar * -1, ps3MaxAnalogNeg, 0, minUs, midUs);  //Mapping analog value from controller to pwm for backward
+        pwmWriteBk = map(-analogVar, ps3MaxAnalogNeg, 0, minUs, midUs);  //Mapping analog value from controller to pwm for backward
 
         //Writing pwm signal for motor controllers
         motor1.write(pwmWriteBk);
@@ -69,12 +65,12 @@ void robotControl::runAtSetup(){
 
     void robotControl::rightShift(int analogVar){
         
-        abs(analogVar);   //Ensuring the number is positive
+        analogVar = abs(analogVar);   //Ensuring the number is positive
         int pwmWriteFw;  //PWM varialble for forward
         int pwmWriteBk;  //PWM variable for backward
 
         pwmWriteFw = map(analogVar, 0, ps3MaxAnalogPos, midUs, maxUs); //Mapping analog value from controller to pwm for forward 
-        pwmWriteBk = map(analogVar * -1, ps3MaxAnalogNeg, 0, minUs, midUs);  //Mapping analog value from controller to pwm for backward
+        pwmWriteBk = map(-analogVar, ps3MaxAnalogNeg, 0, minUs, midUs);  //Mapping analog value from controller to pwm for backward
 
         //Writing pwm signal for motor controllers
         motor1.write(pwmWriteFw);
@@ -85,12 +81,12 @@ void robotControl::runAtSetup(){
 
     void robotControl::leftShift(int analogVar){
     
-        abs(analogVar);   //Ensuring the number is positive
+        analogVar = abs(analogVar);   //Ensuring the number is positive
         int pwmWriteFw;  //PWM varialble for forward
         int pwmWriteBk;  //PWM variable for backward
 
         pwmWriteFw = map(analogVar, 0, ps3MaxAnalogPos, midUs, maxUs); //Mapping analog value from controller to pwm for forward 
-        pwmWriteBk = map(analogVar * -1, ps3MaxAnalogNeg, 0, minUs, midUs);  //Mapping analog value from controller to pwm for backward
+        pwmWriteBk = map(-analogVar, ps3MaxAnalogNeg, 0, minUs, midUs);  //Mapping analog value from controller to pwm for backward
 
         //Writing pwm signal for motor controllers
         motor1.write(pwmWriteBk);
@@ -101,12 +97,12 @@ void robotControl::runAtSetup(){
 
     void robotControl::CW(int analogVar){
     
-        abs(analogVar);   //Ensuring the number is positive
+        analogVar = abs(analogVar);   //Ensuring the number is positive
         int pwmWriteFw;  //PWM varialble for forward
         int pwmWriteBk;  //PWM variable for backward
 
         pwmWriteFw = map(analogVar, 0, ps3MaxAnalogPos, midUs, maxUs); //Mapping analog value from controller to pwm for forward 
-        pwmWriteBk = map(analogVar * -1, ps3MaxAnalogNeg, 0, minUs, midUs);  //Mapping analog value from controller to pwm for backward
+        pwmWriteBk = map(-analogVar, ps3MaxAnalogNeg, 0, minUs, midUs);  //Mapping analog value from controller to pwm for backward
 
         //Writing pwm signal for motor controllers
         motor1.write(pwmWriteFw);
@@ -117,12 +113,12 @@ void robotControl::runAtSetup(){
 
     void robotControl::CCW(int analogVar){
     
-        abs(analogVar);   //Ensuring the number is positive
+        analogVar = abs(analogVar);   //Ensuring the number is positive
         int pwmWriteFw;  //PWM varialble for forward
         int pwmWriteBk;  //PWM variable for backward
 
         pwmWriteFw = map(analogVar, 0, ps3MaxAnalogPos, midUs, maxUs); //Mapping analog value from controller to pwm for forward 
-        pwmWriteBk = map(analogVar * -1, ps3MaxAnalogNeg, 0, minUs, midUs);  //Mapping analog value from controller to pwm for backward
+        pwmWriteBk = map(-analogVar, ps3MaxAnalogNeg, 0, minUs, midUs);  //Mapping analog value from controller to pwm for backward
 
         //Writing pwm signal for motor controllers
         motor1.write(pwmWriteBk);
