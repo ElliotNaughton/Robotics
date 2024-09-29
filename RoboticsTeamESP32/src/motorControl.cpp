@@ -1,9 +1,9 @@
 #include <Arduino.h>
 #include <ESP32Servo.h>
-#include "robotControl.hpp"
+#include "motorControl.hpp"
 
 
-void robotControl::runAtSetup(){
+void motorControl::runAtSetup(){
         
     //attach pins to motors and set min and max pwm freq
     motor1.attach(motor1Pin, minUs, maxUs);
@@ -33,7 +33,7 @@ void robotControl::runAtSetup(){
 
     }
 
-    void robotControl::forward(int analogVar){
+    void motorControl::forward(int analogVar){
 
         analogVar = abs(analogVar);   //Ensuring the number is positive
         int pwmWriteFw;  //Initialzing Forward
@@ -48,7 +48,7 @@ void robotControl::runAtSetup(){
 
     };
 
-    void robotControl::backward(int analogVar){
+    void motorControl::backward(int analogVar){
     
         analogVar = abs(analogVar);   //Ensuring the number is positive
         int pwmWriteBk;  //PWM variable for backward
@@ -63,7 +63,7 @@ void robotControl::runAtSetup(){
 
     };
 
-    void robotControl::rightShift(int analogVar){
+    void motorControl::rightShift(int analogVar){
         
         analogVar = abs(analogVar);   //Ensuring the number is positive
         int pwmWriteFw;  //PWM varialble for forward
@@ -79,7 +79,7 @@ void robotControl::runAtSetup(){
         motor4.write(pwmWriteFw);
     }
 
-    void robotControl::leftShift(int analogVar){
+    void motorControl::leftShift(int analogVar){
     
         analogVar = abs(analogVar);   //Ensuring the number is positive
         int pwmWriteFw;  //PWM varialble for forward
@@ -95,7 +95,7 @@ void robotControl::runAtSetup(){
         motor4.write(pwmWriteBk);
     }
 
-    void robotControl::CW(int analogVar){
+    void motorControl::CW(int analogVar){
     
         analogVar = abs(analogVar);   //Ensuring the number is positive
         int pwmWriteFw;  //PWM varialble for forward
@@ -111,7 +111,7 @@ void robotControl::runAtSetup(){
         motor4.write(pwmWriteBk);
     }
 
-    void robotControl::CCW(int analogVar){
+    void motorControl::CCW(int analogVar){
     
         analogVar = abs(analogVar);   //Ensuring the number is positive
         int pwmWriteFw;  //PWM varialble for forward

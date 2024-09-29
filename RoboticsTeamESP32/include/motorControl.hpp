@@ -1,10 +1,10 @@
-#ifndef ROBOTCONTROL_HPP
-#define ROBOTCONTROL_HPP
+#ifndef MOTORCONTROL_HPP
+#define MOTORCONTROL_HPP
 #include <Arduino.h>
 #include <ESP32Servo.h>
 #include <Ps3Controller.h>
 
-class robotControl{
+class motorControl{
     private:
 
     Servo motor1; //front left motor
@@ -50,4 +50,4 @@ class robotControl{
 };
 
 
-#endif //ROBOTCONTROL_H
+#endif //motion_H

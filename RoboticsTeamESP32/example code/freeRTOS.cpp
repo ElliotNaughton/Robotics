@@ -1,6 +1,6 @@
 
 void Test1(void * parameter){
-  for(;;){
+  for(;;){ //start infinite loop freeRTOS can break out of loop for other tasks
     //code to run during task
   }
 }
