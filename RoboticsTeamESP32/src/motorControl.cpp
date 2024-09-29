@@ -36,7 +36,7 @@ void motorControl::runAtSetup(){
     void motorControl::forward(int analogVar){
 
         analogVar = abs(analogVar);   //Ensuring the number is positive
-        int pwmWriteFw;  //Initialzing Forward
+        int pwmWriteFw;  //PWM varialble for forward
 
         pwmWriteFw = map(analogVar, 0, ps3MaxAnalogPos, midUs, maxUs); //Mapping analog value from controller to pwm for forward 
 

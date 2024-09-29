@@ -11,7 +11,7 @@ class motorControl{
     Servo motor2; //front right motor
     Servo motor3; //back left motor
     Servo motor4; //back right motor
-    Servo servo1; //close open plow motor
+    Servo servo1; //close open plow servo
     Servo motor5; //motor for hanging | right side
     Servo motor6; //motor for hanging | left side
 

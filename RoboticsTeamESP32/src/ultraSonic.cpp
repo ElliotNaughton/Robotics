@@ -42,7 +42,6 @@ void ultraSonic::runAtSetup(){
 }
 
 bool ultraSonic::objectDetected(){
-    bool object;
 
     if (currentMillis - sensorTrigDelay > prevMillis){ //if it has been delay time since last run, run again
 
@@ -57,8 +56,9 @@ bool ultraSonic::objectDetected(){
         else if(sensorIndex == 8) {return singleSensorDetect(trigPin8, echoPin8) ? true : false;}
         
 
-        if (++sensorIndex > 8) { sensorIndex = 1;}//increment the index
+        if (++sensorIndex > 8) { sensorIndex = 1;}//increment the index and set to 1 if over 8
         prevMillis = millis(); //set previous milliseconds to test for next time funtion is run
     }
 
+    return false;
 }
