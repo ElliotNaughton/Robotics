@@ -3,7 +3,7 @@
 void setup()
 {
     Serial.begin(115200);
-    Ps3.begin("01:02:03:04:05:06");
+  Ps3.begin("2c:81:58:49:e4:01");
     Serial.println("Ready.");
 }
 

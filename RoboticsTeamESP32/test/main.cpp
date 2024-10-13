@@ -1,17 +1,29 @@
 #include <Arduino.h>
 #include <ESP32Servo.h>
 #include <Ps3Controller.h>
+#include "HUSKYLENS.h"
+#include "SoftwareSerial.h"
 #include "motorControl.hpp"
 #include "ultraSonic.hpp"
 
 
 
-//creating class objects
-motorControl robotMove;
-ultraSonic sensor;
+
 
 int ps3StickDeadzone = 4; //what number to start tracking value changes for analog stick reading
-int plowLiftPin = 20; //pin for relay to actuators to lift plow
+int plowLiftPin = 23; //pin for relay to actuators to lift plow
+int redLEDpin = 0; //red LED pin
+int blueLEDpin = 2; //blue LED pin
+int greenLEDpin = 15; //green LED pin
+
+HUSKYLENS huskylens;
+SoftwareSerial mySerial(1, 3); // RX, TX
+//HUSKYLENS green line >> Pin 10; blue line >> Pin 11
+void printResult(HUSKYLENSResult result);
+
+
+
+
 bool plowState = false; //tracks state of plow, either up (true) or down (false)
 
 bool objectRumble = true; //set to false after rumble when object is detected and true when there is no object, ensures controller does not rumble the entire time an object is detected
@@ -22,51 +34,53 @@ void continuosDetection(void * parameter); //task to read and pulse ultrasonic
 void setup() {
 
 
-/////////////////////////////////////////////////////////////////// robotMove Setup //////////////////////////////////////////////////////
 
+
+/////////////////////////////////////////////////////////////////// robotMove Setup //////////////////////////////////////////////////////
+  //creating class objects
+  motorControl robotMove;
   robotMove.minUs = 1050; //minumum PWM
   robotMove.midUs = 1500; //mid range PWN
   robotMove.maxUs = 1950; //maximum PWM
   //motor pin setup
-  robotMove.motor1Pin = 11; //front left motor
+  robotMove.motor1Pin = 13; //front left motor
   robotMove.motor2Pin = 12; //front right motor
-  robotMove.motor3Pin = 13; //back left motor
-  robotMove.motor4Pin = 14; //back right motor
-  robotMove.servo1Pin = 4;  //close open plow servo
-  robotMove.motor5Pin = 39; //climbing motor right side pin
-  robotMove.motor6Pin = 21; //climbing motor left side pin
+  robotMove.motor3Pin = 14; //back left motor
+  robotMove.motor4Pin = 27; //back right motor
+  robotMove.servo1Pin = 15;  //close open plow servo
   robotMove.ps3MaxAnalogNeg = -130; //Ps3 negative analog maximum 
   robotMove.ps3MaxAnalogPos = 130; //Ps3 positive analog maximum
-  robotMove.pwmHertz = 50; //Stanard 50hz PWM Freq
+  robotMove.pwmHertz = 50; //Standard 50hz PWM Freq
   robotMove.runAtSetup();//initialize and tie above setup to hardware
 
 /////////////////////////////////////////////////////////////////// ultrasonic sensor setup //////////////////////////////////////////////
 
+  ultraSonic sensor;
   sensor.normalDuration = 0; //TBD normal duration of ultrasonic pulse at floor distance
   sensor.sensorTrigDelay = 50; //trigger delay in milliseconds, research shows will dissapate in 50 ms
   sensor.sensorDebounce = 1000; //debounce timer in ms for objectDetection in plow
 
   //trig pin setup
-  sensor.trigPin1 = 16;
-  sensor.trigPin2 = 17;
-  sensor.trigPin3 = 18;
-  sensor.trigPin4 = 8;
-  sensor.trigPin5 = 3;
-  sensor.trigPin6 = 46;
-  sensor.trigPin7 = 9;
-  sensor.trigPin8 = 10;
+  sensor.trigPin1 = 36;
+  sensor.trigPin2 = 39;
+  sensor.trigPin3 = 34;
+  sensor.trigPin4 = 35;
+  sensor.trigPin5 = 32;
+  sensor.trigPin6 = 33;
+  sensor.trigPin7 = 25;
+  sensor.trigPin8 = 26;
 
   //echo pin setup
-  sensor.echoPin1 = 47;
-  sensor.echoPin2 = 48;
-  sensor.echoPin3 = 45;
-  sensor.echoPin4 = 0;
-  sensor.echoPin5 = 35;
-  sensor.echoPin6 = 36;
-  sensor.echoPin7 = 37;
-  sensor.echoPin8 = 38;
+  sensor.echoPin1 = 22;
+  sensor.echoPin2 = 21;
+  sensor.echoPin3 = 19;
+  sensor.echoPin4 = 18;
+  sensor.echoPin5 = 5;
+  sensor.echoPin6 = 17;
+  sensor.echoPin7 = 16;
+  sensor.echoPin8 = 4;
 
-  sensor.runAtSetup();//initialize and tie above setup to hardware
+  //sensor.runAtSetup();//initialize and tie above setup to hardware
 
 /////////////////////////////////////////////////////////////////// Miscellaneous Setup //////////////////////////////////////////////////
 	

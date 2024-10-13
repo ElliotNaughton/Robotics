@@ -15,7 +15,8 @@ class motorControl{
     Servo motor5; //motor for hanging | right side
     Servo motor6; //motor for hanging | left side
 
-    public: 
+    public:
+
         
     int minUs;//minumum PWM
     int midUs;//mid range PWM
