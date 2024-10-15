@@ -62,6 +62,7 @@ bool ultraSonic::objectDetected(){
     }
     //debounce timer
     if(objectInPlow){//return true of object detected
+        Serial.print("Test");
         return true;
         prevMillisDebounce = millis();
     }

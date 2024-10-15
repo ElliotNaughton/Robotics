@@ -1,8 +1,12 @@
 #include <Ps3Controller.h>
 #include <ESP32Servo.h>
+#include "ultraSonic.hpp"
 
 bool isNotConnected = true;
 Servo Test1;
+ultraSonic sensor;
+
+bool objectRumble;
 
 int ps3StickDeadzone = 10; //what number to start tracking value changes for analog stick reading
 
@@ -18,119 +22,23 @@ Servo motor3;
 Servo motor4;
 Servo servo1;
 
-int ps3MaxAnalogPos = 130;
-int ps3MaxAnalogNeg = -130;
-int minUs = 1000;
-int midUs = 1500;
+int analogVarX;
+int analogVarY;
+int analogVarF;
+int motor1pwm;
+int motor2pwm;
+int motor3pwm;
+int motor4pwm;
 int maxUs = 1950;
+int midUs = 1500;
+int minUs = 1000;
+int ps3MaxAnalogPos = 125;
+int ps3MaxAnalogNeg = -125;
+int ps3Deadzone = 4;
+bool isNotConnected = true;
 
-
-void forward(int analogVar){
-
-        analogVar = abs(analogVar);   //Ensuring the number is positive
-        int pwmWriteFw;  //PWM varialble for forward
-
-        pwmWriteFw = map(analogVar, 0, ps3MaxAnalogPos, midUs, maxUs); //Mapping analog value from controller to pwm for forward 
-
-        //Writing pwm signal for motor controllers
-        motor1.writeMicroseconds(pwmWriteFw);
-        motor2.writeMicroseconds(pwmWriteFw);
-        motor3.writeMicroseconds(pwmWriteFw);
-        motor4.writeMicroseconds(pwmWriteFw);
-
-        Serial.print(pwmWriteFw);
-        Serial.println("Forward");
-
-    };
-
-void backward(int analogVar){
-    
-        analogVar = abs(analogVar);   //Ensuring the number is positive
-        int pwmWriteBk;  //PWM variable for backward
-
-        pwmWriteBk = map(-analogVar, ps3MaxAnalogNeg, 0, minUs, midUs);  //Mapping analog value from controller to pwm for backward
-
-        //Writing pwm signal for motor controllers
-        motor1.writeMicroseconds(pwmWriteBk);
-        motor2.writeMicroseconds(pwmWriteBk);
-        motor3.writeMicroseconds(pwmWriteBk);
-        motor4.writeMicroseconds(pwmWriteBk);
-
-    };
-
-void rightShift(int analogVar){
-        
-        analogVar = abs(analogVar);   //Ensuring the number is positive
-        int pwmWriteFw;  //PWM varialble for forward
-        int pwmWriteBk;  //PWM variable for backward
-
-        pwmWriteFw = map(analogVar, 0, ps3MaxAnalogPos, midUs, maxUs); //Mapping analog value from controller to pwm for forward 
-        pwmWriteBk = map(-analogVar, ps3MaxAnalogNeg, 0, minUs, midUs);  //Mapping analog value from controller to pwm for backward
-
-        //Writing pwm signal for motor controllers
-        motor1.writeMicroseconds(pwmWriteFw);
-        motor2.writeMicroseconds(pwmWriteBk);
-        motor3.writeMicroseconds(pwmWriteBk);
-        motor4.writeMicroseconds(pwmWriteFw);
-    }
-
-void leftShift(int analogVar){
-    
-        analogVar = abs(analogVar);   //Ensuring the number is positive
-        int pwmWriteFw;  //PWM varialble for forward
-        int pwmWriteBk;  //PWM variable for backward
-
-        pwmWriteFw = map(analogVar, 0, ps3MaxAnalogPos, midUs, maxUs); //Mapping analog value from controller to pwm for forward 
-        pwmWriteBk = map(-analogVar, ps3MaxAnalogNeg, 0, minUs, midUs);  //Mapping analog value from controller to pwm for backward
-
-        //Writing pwm signal for motor controllers
-        motor1.writeMicroseconds(pwmWriteBk);
-        motor2.writeMicroseconds(pwmWriteFw);
-        motor3.writeMicroseconds(pwmWriteFw);
-        motor4.writeMicroseconds(pwmWriteBk);
-    }
-
-void CW(int analogVar){
-    
-        analogVar = abs(analogVar);   //Ensuring the number is positive
-        int pwmWriteFw;  //PWM varialble for forward
-        int pwmWriteBk;  //PWM variable for backward
-
-        pwmWriteFw = map(analogVar, 0, ps3MaxAnalogPos, midUs, maxUs); //Mapping analog value from controller to pwm for forward 
-        pwmWriteBk = map(-analogVar, ps3MaxAnalogNeg, 0, minUs, midUs);  //Mapping analog value from controller to pwm for backward
-
-        //Writing pwm signal for motor controllers
-        motor1.writeMicroseconds(pwmWriteFw);
-        motor2.writeMicroseconds(pwmWriteBk);
-        motor3.writeMicroseconds(pwmWriteFw);
-        motor4.writeMicroseconds(pwmWriteBk);
-    }
-
-void CCW(int analogVar){
-    
-        analogVar = abs(analogVar);   //Ensuring the number is positive
-        int pwmWriteFw;  //PWM varialble for forward
-        int pwmWriteBk;  //PWM variable for backward
-
-        pwmWriteFw = map(analogVar, 0, ps3MaxAnalogPos, midUs, maxUs); //Mapping analog value from controller to pwm for forward 
-        pwmWriteBk = map(-analogVar, ps3MaxAnalogNeg, 0, minUs, midUs);  //Mapping analog value from controller to pwm for backward
-
-        //Writing pwm signal for motor controllers
-        motor1.writeMicroseconds(pwmWriteBk);
-        motor2.writeMicroseconds(pwmWriteFw);
-        motor3.writeMicroseconds(pwmWriteBk);
-        motor4.writeMicroseconds(pwmWriteFw);
-    }
-
-void Stop(){
-  
-        //Writing pwm signal for motor controllers
-        motor1.writeMicroseconds(midUs);
-        motor2.writeMicroseconds(midUs);
-        motor3.writeMicroseconds(midUs);
-        motor4.writeMicroseconds(midUs);
-    }
-
+void ps3ReadEsp32Execute(void * parameter); //task to read from ps3 controller and write to motor pwm
+void continuosDetection(void * parameter); //task to read and pulse ultrasonic
 
 void setup()
 {
@@ -143,9 +51,43 @@ void setup()
 
   motor1.attach(13); //front left motor
   motor2.attach(12); //front right motor
-  motor3.attach(14); //back left motor
+  motor3.attach(33); //back left motor
   motor4.attach(27); //back right motor
   servo1.attach(15);  //close open plow servo
+
+  ultraSonic sensor;
+  sensor.normalDuration = 0; //TBD normal duration of ultrasonic pulse at floor distance
+  sensor.sensorTrigDelay = 50; //trigger delay in milliseconds, research shows will dissapate in 50 ms
+  sensor.sensorDebounce = 1000; //debounce timer in ms for objectDetection in plow
+
+  //trig pin setup
+  sensor.trigPin1 = 36;
+  sensor.trigPin2 = 39;
+  sensor.trigPin3 = 34;
+  sensor.trigPin4 = 35;
+  sensor.trigPin5 = 32;
+  sensor.trigPin6 = 14;
+  sensor.trigPin7 = 25;
+  sensor.trigPin8 = 26;
+
+  //echo pin setup
+  sensor.echoPin1 = 22;
+  sensor.echoPin2 = 21;
+  sensor.echoPin3 = 19;
+  sensor.echoPin4 = 18;
+  sensor.echoPin5 = 5;
+  sensor.echoPin6 = 17;
+  sensor.echoPin7 = 16;
+  sensor.echoPin8 = 4;
+
+    xTaskCreate(//task to read from ps3 controller and write to motor pwm
+      ps3ReadEsp32Execute,    // Function that should be called
+      "PS3 Read PWM Write",  // Name of the task (for debugging)
+      10000,            // Stack size (bytes)
+      NULL,            // Parameter to pass
+      5,               // Task priority
+      NULL             // Task handle
+  );
 
 
   
@@ -153,60 +95,167 @@ void setup()
 
 void loop()
 {
-  if (Ps3.isConnected() && isNotConnected){
+
+
+
+}
+
+void ps3ReadEsp32Execute(void * parameter){//task to read from ps3 controller and write to motor pwm
+  for(;;){//start infinite loop freeRTOS can break out of loop for other tasks
+    if (Ps3.isConnected() && isNotConnected){
     Serial.println("Connected!");
     isNotConnected = false;
   }
+/*
+  Serial.print("lx: ");
+  Serial.print(Ps3.data.analog.stick.lx);
+  Serial.print(" ly: ");
+  Serial.print(Ps3.data.analog.stick.ly);
+  Serial.print(" rx: ");
+  Serial.print(Ps3.data.analog.stick.rx);
+  Serial.print(" ry: ");
+  Serial.println(Ps3.data.analog.stick.ry);
+*/
+  
 
-
-//Horizontal Movement of the Left Stick
-  if(Ps3.event.analog_changed.stick.lx){
-
-      if(Ps3.data.analog.stick.lx > ps3StickDeadzone){rightShift(Ps3.data.analog.stick.lx);}
-
-      if(Ps3.data.analog.stick.lx < -ps3StickDeadzone){leftShift(Ps3.data.analog.stick.lx);}
+  if((Ps3.data.analog.stick.rx < -ps3Deadzone)){ 
+      analogVarX = abs(Ps3.data.analog.stick.rx);
+      
+      //Writing pwm signal for motor controllers
+      motor1pwm = map(-analogVarX , ps3MaxAnalogNeg, 0, minUs, midUs);
+      motor2pwm = map(-analogVarX , ps3MaxAnalogNeg, 0, minUs, midUs);
+      motor3pwm = map(-analogVarX , ps3MaxAnalogNeg, 0, minUs, midUs);
+      motor4pwm = map(-analogVarX , ps3MaxAnalogNeg, 0, minUs, midUs);
   }
 
-  //Vertical movement of the Left sick
-  if(Ps3.event.analog_changed.stick.ly){
+    else if((Ps3.data.analog.stick.rx > ps3Deadzone)){ 
+      analogVarX = abs(Ps3.data.analog.stick.rx);
+      
+      //Writing pwm signal for motor controllers
+      motor1pwm = map(analogVarX , 0, ps3MaxAnalogPos, midUs, maxUs);
+      motor2pwm = map(analogVarX , 0, ps3MaxAnalogPos, midUs, maxUs);
+      motor3pwm = map(analogVarX , 0, ps3MaxAnalogPos, midUs, maxUs);
+      motor4pwm = map(analogVarX , 0, ps3MaxAnalogPos, midUs, maxUs);
+  }
+
+  
+    //if is in Quadrant 1
+  else if((Ps3.data.analog.stick.lx > ps3Deadzone) && (Ps3.data.analog.stick.ly > ps3Deadzone)){
+      analogVarX = abs(Ps3.data.analog.stick.lx + 1);
+      analogVarY = abs(Ps3.data.analog.stick.ly + 1);
+
+      //Writing pwm signal for motor controllers
+      motor1pwm = map(analogVarX - analogVarY , ps3MaxAnalogNeg, ps3MaxAnalogPos, minUs, maxUs);
+      motor2pwm = map(((analogVarX + analogVarY) / 2) , 0, ps3MaxAnalogPos, midUs, maxUs);
+      motor3pwm = map(-((analogVarX + analogVarY) / 2) , ps3MaxAnalogNeg, 0, minUs, midUs);
+      motor4pwm = map(analogVarY - analogVarX , ps3MaxAnalogNeg, ps3MaxAnalogPos, minUs, maxUs);
+  }
+
+  //in Between 1 and 2
+  else if((Ps3.data.analog.stick.ly > ps3Deadzone) && (Ps3.data.analog.stick.lx < ps3Deadzone) && (Ps3.data.analog.stick.lx > -ps3Deadzone)){
+      analogVarY = abs(Ps3.data.analog.stick.ly + 1);
+      
+      //Writing pwm signal for motor controllers
+      motor1pwm = map(-analogVarY , ps3MaxAnalogNeg, 0, minUs, midUs);
+      motor2pwm = map(analogVarY , 0, ps3MaxAnalogPos, midUs, maxUs);
+      motor3pwm = map(-analogVarY , ps3MaxAnalogNeg, 0, minUs, midUs);
+      motor4pwm = map(analogVarY , 0, ps3MaxAnalogPos, midUs, maxUs);
+
+  }
+
+  //if is in quadrant 2
+  else if((Ps3.data.analog.stick.lx < -ps3Deadzone) && (Ps3.data.analog.stick.ly > ps3Deadzone)){
+      analogVarX = abs(Ps3.data.analog.stick.lx);
+      analogVarY = abs(Ps3.data.analog.stick.ly + 1);
     
-    if(Ps3.data.analog.stick.ly < -ps3StickDeadzone){forward(Ps3.data.analog.stick.ly);}
-
-    if(Ps3.data.analog.stick.ly > ps3StickDeadzone){backward(Ps3.data.analog.stick.ly);}
-  }  
-
-  //Horizontal movement of the Right Stick
-  if(Ps3.event.analog_changed.stick.rx){
-
-    if(Ps3.data.analog.stick.rx > ps3StickDeadzone){CW(Ps3.data.analog.stick.rx);}
-
-    if(Ps3.data.analog.stick.rx < -ps3StickDeadzone){CCW(Ps3.data.analog.stick.rx);}
+      //Writing pwm signal for motor controllers
+      motor1pwm = map(-((analogVarX + analogVarY) / 2) , ps3MaxAnalogNeg, 0, minUs, midUs);
+      motor2pwm = map(analogVarY - analogVarX , ps3MaxAnalogNeg, ps3MaxAnalogPos, minUs, maxUs);
+      motor3pwm = map(analogVarX - analogVarY , ps3MaxAnalogNeg, ps3MaxAnalogPos, minUs, maxUs);
+      motor4pwm = map(((analogVarX + analogVarY) / 2) , 0, ps3MaxAnalogPos, midUs, maxUs);
   }
 
-  //Vertical movement of the Right Stick
-  if(Ps3.event.analog_changed.stick.ry){
-
-
-    }  
-
-
-
-  //right bumper
-  if(Ps3.event.button_down.r1){ 
-    digitalWrite(plowLiftPin,HIGH);
+  //in Between 1 and 3 
+  else if((Ps3.data.analog.stick.lx > ps3Deadzone) && (Ps3.data.analog.stick.ly < ps3Deadzone) && (Ps3.data.analog.stick.ly > -ps3Deadzone)){
+      analogVarX = abs(Ps3.data.analog.stick.lx + 1);
+      analogVarY = abs(Ps3.data.analog.stick.ly + 1);
+      
+      //Writing pwm signal for motor controllers
+      motor1pwm = map(analogVarX , 0, ps3MaxAnalogPos, midUs, maxUs);
+      motor2pwm = map(analogVarX , 0, ps3MaxAnalogPos, midUs, maxUs);
+      motor3pwm = map(-analogVarX , ps3MaxAnalogNeg, 0, minUs, midUs);
+      motor4pwm = map(-analogVarX , ps3MaxAnalogNeg, 0, minUs, midUs);
   }
 
-    //left bumper
-  if(Ps3.event.button_down.l1){ 
-    digitalWrite(plowLiftPin,LOW);
+    //in Between 2 and 4 
+  else if((Ps3.data.analog.stick.lx < -ps3Deadzone) && (Ps3.data.analog.stick.ly < ps3Deadzone) && (Ps3.data.analog.stick.ly > -ps3Deadzone)){
+      analogVarX = abs(Ps3.data.analog.stick.lx + 1);
+      analogVarY = abs(Ps3.data.analog.stick.ly + 1);
+      
+      //Writing pwm signal for motor controllers
+      motor1pwm = map(-analogVarX , ps3MaxAnalogNeg, 0, minUs, midUs);
+      motor2pwm = map(-analogVarX , ps3MaxAnalogNeg, 0, minUs, midUs);
+      motor3pwm = map(analogVarX , 0, ps3MaxAnalogPos, midUs, maxUs);
+      motor4pwm = map(analogVarX , 0, ps3MaxAnalogPos, midUs, maxUs);
   }
 
+  //if is in Quadrant 3 
+  else if((Ps3.data.analog.stick.lx > ps3Deadzone) && (Ps3.data.analog.stick.ly < -ps3Deadzone)){
+      analogVarX = abs(Ps3.data.analog.stick.lx + 1);
+      analogVarY = abs(Ps3.data.analog.stick.ly);
+      //Writing pwm signal for motor controllers
 
-  if(    Ps3.data.analog.stick.lx < ps3StickDeadzone && Ps3.data.analog.stick.lx > -ps3StickDeadzone 
-      && Ps3.data.analog.stick.ly < ps3StickDeadzone && Ps3.data.analog.stick.ly > -ps3StickDeadzone  
-      && Ps3.data.analog.stick.rx < ps3StickDeadzone && Ps3.data.analog.stick.rx > -ps3StickDeadzone 
-      && Ps3.data.analog.stick.ry < ps3StickDeadzone && Ps3.data.analog.stick.ry > -ps3StickDeadzone){
-        Stop();
-      }
+      motor1pwm = map(((analogVarX + analogVarY) / 2) , 0, ps3MaxAnalogPos, midUs, maxUs);
+      motor2pwm = map(analogVarX - analogVarY, ps3MaxAnalogNeg, ps3MaxAnalogPos, minUs, maxUs);
+      motor3pwm = map(analogVarY - analogVarX , ps3MaxAnalogNeg, ps3MaxAnalogPos, minUs, maxUs);
+      motor4pwm = map(-((analogVarX + analogVarY) / 2) , ps3MaxAnalogNeg, 0, minUs, midUs);      
+  }
 
+  //in Between 3 and 4
+  else if((Ps3.data.analog.stick.ly < -ps3Deadzone) && (Ps3.data.analog.stick.lx < ps3Deadzone) && (Ps3.data.analog.stick.lx > -ps3Deadzone)){
+      analogVarX = abs(Ps3.data.analog.stick.lx);
+      analogVarY = abs(Ps3.data.analog.stick.ly + 1);
+
+      //Writing pwm signal for motor controllers
+      motor1pwm = map(analogVarY , 0, ps3MaxAnalogPos, midUs, maxUs);
+      motor2pwm = map(-analogVarY , ps3MaxAnalogNeg, 0, minUs, midUs);
+      motor3pwm = map(analogVarY , 0, ps3MaxAnalogPos, midUs, maxUs);
+      motor4pwm = map(-analogVarY , ps3MaxAnalogNeg, 0, minUs, midUs);
+  }
+
+  //if is in Quadrant 4
+  else if((Ps3.data.analog.stick.lx < -ps3Deadzone) && (Ps3.data.analog.stick.ly < -ps3Deadzone)){
+      analogVarX = abs(Ps3.data.analog.stick.lx);
+      analogVarY = abs(Ps3.data.analog.stick.ly + 1);
+
+      //Writing pwm signal for motor controllers
+      motor1pwm = map(analogVarY - analogVarX , ps3MaxAnalogNeg, ps3MaxAnalogPos, minUs, maxUs);
+      motor2pwm = map(-((analogVarX + analogVarY) / 2) , ps3MaxAnalogNeg, 0, minUs, midUs);   
+      motor3pwm = map(((analogVarX + analogVarY) / 2) , 0, ps3MaxAnalogPos, midUs, maxUs);
+      motor4pwm = map(analogVarX - analogVarY, ps3MaxAnalogNeg, ps3MaxAnalogPos, minUs, maxUs); 
+  }
+
+  else {
+      motor1pwm = 1500;
+      motor2pwm = 1500;
+      motor3pwm = 1500;
+      motor4pwm = 1500;
+  }
+
+/*
+Serial.print("motor1:");
+Serial.print(motor1pwm);
+Serial.print(" motor2:");
+Serial.println(motor2pwm);
+Serial.print("motor3:");
+Serial.print(motor3pwm);
+Serial.print(" motor4:");
+Serial.println(motor4pwm);
+*/
+
+motor1.writeMicroseconds(motor1pwm);
+motor2.writeMicroseconds(motor2pwm);
+motor3.writeMicroseconds(motor3pwm);
+motor4.writeMicroseconds(motor4pwm);
+  }
 }
