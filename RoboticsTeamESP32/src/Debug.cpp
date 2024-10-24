@@ -1,11 +1,8 @@
 #include <Ps3Controller.h>
 #include <ESP32Servo.h>
 #include <HUSKYLENS.h>
-#include "ultraSonic.hpp"
 
 bool isNotConnected = true;
-Servo Test1;
-ultraSonic sensor;
 
 float normalDuration = 300; //TBD normal duration of ultrasonic pulse at floor distance
 unsigned long prevMillisPulse; //last time sensors were pulsed
