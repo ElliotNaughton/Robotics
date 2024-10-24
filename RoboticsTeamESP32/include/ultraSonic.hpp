@@ -25,22 +25,15 @@ class ultraSonic{
     int trigPin2;
     int trigPin3;
     int trigPin4;
-    int trigPin5;
-    int trigPin6;
-    int trigPin7;
-    int trigPin8;
+ 
 
     //pins which will recieve ultrasonic pulse time
     int echoPin1;
     int echoPin2;
     int echoPin3;
     int echoPin4;
-    int echoPin5;
-    int echoPin6;
-    int echoPin7;
-    int echoPin8;
 
-    void runAtSetup();
+
     bool objectDetected();
 
 };
