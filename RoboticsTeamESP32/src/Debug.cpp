@@ -8,8 +8,6 @@ ultraSonic sensor;
 
 bool objectRumble;
 
-int ps3StickDeadzone = 10; //what number to start tracking value changes for analog stick reading
-
 int plowLiftPin = 23; //pin for relay to actuators to lift plow
 bool plowState = false; //tracks state of plow, either up (true) or down (false)
 
@@ -29,13 +27,15 @@ int motor1pwm;
 int motor2pwm;
 int motor3pwm;
 int motor4pwm;
+int servo1pwm;
 int maxUs = 1950;
 int midUs = 1500;
 int minUs = 1000;
 int ps3MaxAnalogPos = 125;
 int ps3MaxAnalogNeg = -125;
 int ps3Deadzone = 4;
-bool isNotConnected = true;
+int servo1ClosedPwm = 1000;
+int servo1OpenPwm = 1800;
 
 void ps3ReadEsp32Execute(void * parameter); //task to read from ps3 controller and write to motor pwm
 void continuosDetection(void * parameter); //task to read and pulse ultrasonic
@@ -53,7 +53,7 @@ void setup()
   motor2.attach(12); //front right motor
   motor3.attach(33); //back left motor
   motor4.attach(27); //back right motor
-  servo1.attach(15);  //close open plow servo
+  servo1.attach(32);  //close open plow servo
 
   ultraSonic sensor;
   sensor.normalDuration = 0; //TBD normal duration of ultrasonic pulse at floor distance
@@ -65,7 +65,7 @@ void setup()
   sensor.trigPin2 = 39;
   sensor.trigPin3 = 34;
   sensor.trigPin4 = 35;
-  sensor.trigPin5 = 32;
+  sensor.trigPin5 = 33;
   sensor.trigPin6 = 14;
   sensor.trigPin7 = 25;
   sensor.trigPin8 = 26;
@@ -95,9 +95,6 @@ void setup()
 
 void loop()
 {
-
-
-
 }
 
 void ps3ReadEsp32Execute(void * parameter){//task to read from ps3 controller and write to motor pwm
@@ -235,6 +232,15 @@ void ps3ReadEsp32Execute(void * parameter){//task to read from ps3 controller an
       motor4pwm = map(analogVarX - analogVarY, ps3MaxAnalogNeg, ps3MaxAnalogPos, minUs, maxUs); 
   }
 
+  if (Ps3.event.button_down.r1){
+    servo1pwm = servo1OpenPwm;
+  }
+
+  else if (Ps3.event.button_down.r2){
+    servo1pwm = servo1ClosedPwm;
+  }
+
+
   else {
       motor1pwm = 1500;
       motor2pwm = 1500;
@@ -257,5 +263,7 @@ motor1.writeMicroseconds(motor1pwm);
 motor2.writeMicroseconds(motor2pwm);
 motor3.writeMicroseconds(motor3pwm);
 motor4.writeMicroseconds(motor4pwm);
+servo1.writeMicroseconds(servo1pwm);
+
   }
 }
