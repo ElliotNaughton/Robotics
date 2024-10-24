@@ -7,6 +7,7 @@ Servo Test1;
 ultraSonic sensor;
 
 bool objectRumble;
+int mode = 0;//0 For Stopped, 1 Manual Mode, 2 for Start Automatic Mode 
 
 int plowLiftPin = 23; //pin for relay to actuators to lift plow
 bool plowState = false; //tracks state of plow, either up (true) or down (false)
@@ -113,140 +114,145 @@ void ps3ReadEsp32Execute(void * parameter){//task to read from ps3 controller an
   Serial.print(" ry: ");
   Serial.println(Ps3.data.analog.stick.ry);
 */
-  
 
-  if((Ps3.data.analog.stick.rx < -ps3Deadzone)){ 
-      analogVarX = abs(Ps3.data.analog.stick.rx);
-      
-      //Writing pwm signal for motor controllers
-      motor1pwm = map(-analogVarX , ps3MaxAnalogNeg, 0, minUs, midUs);
-      motor2pwm = map(-analogVarX , ps3MaxAnalogNeg, 0, minUs, midUs);
-      motor3pwm = map(-analogVarX , ps3MaxAnalogNeg, 0, minUs, midUs);
-      motor4pwm = map(-analogVarX , ps3MaxAnalogNeg, 0, minUs, midUs);
-  }
+  if (mode){
 
-    else if((Ps3.data.analog.stick.rx > ps3Deadzone)){ 
-      analogVarX = abs(Ps3.data.analog.stick.rx);
-      
-      //Writing pwm signal for motor controllers
-      motor1pwm = map(analogVarX , 0, ps3MaxAnalogPos, midUs, maxUs);
-      motor2pwm = map(analogVarX , 0, ps3MaxAnalogPos, midUs, maxUs);
-      motor3pwm = map(analogVarX , 0, ps3MaxAnalogPos, midUs, maxUs);
-      motor4pwm = map(analogVarX , 0, ps3MaxAnalogPos, midUs, maxUs);
-  }
-
-  
-    //if is in Quadrant 1
-  else if((Ps3.data.analog.stick.lx > ps3Deadzone) && (Ps3.data.analog.stick.ly > ps3Deadzone)){
-      analogVarX = abs(Ps3.data.analog.stick.lx + 1);
-      analogVarY = abs(Ps3.data.analog.stick.ly + 1);
-
-      //Writing pwm signal for motor controllers
-      motor1pwm = map(analogVarX - analogVarY , ps3MaxAnalogNeg, ps3MaxAnalogPos, minUs, maxUs);
-      motor2pwm = map(((analogVarX + analogVarY) / 2) , 0, ps3MaxAnalogPos, midUs, maxUs);
-      motor3pwm = map(-((analogVarX + analogVarY) / 2) , ps3MaxAnalogNeg, 0, minUs, midUs);
-      motor4pwm = map(analogVarY - analogVarX , ps3MaxAnalogNeg, ps3MaxAnalogPos, minUs, maxUs);
-  }
-
-  //in Between 1 and 2
-  else if((Ps3.data.analog.stick.ly > ps3Deadzone) && (Ps3.data.analog.stick.lx < ps3Deadzone) && (Ps3.data.analog.stick.lx > -ps3Deadzone)){
-      analogVarY = abs(Ps3.data.analog.stick.ly + 1);
-      
-      //Writing pwm signal for motor controllers
-      motor1pwm = map(-analogVarY , ps3MaxAnalogNeg, 0, minUs, midUs);
-      motor2pwm = map(analogVarY , 0, ps3MaxAnalogPos, midUs, maxUs);
-      motor3pwm = map(-analogVarY , ps3MaxAnalogNeg, 0, minUs, midUs);
-      motor4pwm = map(analogVarY , 0, ps3MaxAnalogPos, midUs, maxUs);
-
-  }
-
-  //if is in quadrant 2
-  else if((Ps3.data.analog.stick.lx < -ps3Deadzone) && (Ps3.data.analog.stick.ly > ps3Deadzone)){
-      analogVarX = abs(Ps3.data.analog.stick.lx);
-      analogVarY = abs(Ps3.data.analog.stick.ly + 1);
     
-      //Writing pwm signal for motor controllers
-      motor1pwm = map(-((analogVarX + analogVarY) / 2) , ps3MaxAnalogNeg, 0, minUs, midUs);
-      motor2pwm = map(analogVarY - analogVarX , ps3MaxAnalogNeg, ps3MaxAnalogPos, minUs, maxUs);
-      motor3pwm = map(analogVarX - analogVarY , ps3MaxAnalogNeg, ps3MaxAnalogPos, minUs, maxUs);
-      motor4pwm = map(((analogVarX + analogVarY) / 2) , 0, ps3MaxAnalogPos, midUs, maxUs);
-  }
 
-  //in Between 1 and 3 
-  else if((Ps3.data.analog.stick.lx > ps3Deadzone) && (Ps3.data.analog.stick.ly < ps3Deadzone) && (Ps3.data.analog.stick.ly > -ps3Deadzone)){
-      analogVarX = abs(Ps3.data.analog.stick.lx + 1);
-      analogVarY = abs(Ps3.data.analog.stick.ly + 1);
+    if((Ps3.data.analog.stick.rx < -ps3Deadzone)){ 
+        analogVarX = abs(Ps3.data.analog.stick.rx);
+        
+        //Writing pwm signal for motor controllers
+        motor1pwm = map(-analogVarX , ps3MaxAnalogNeg, 0, minUs, midUs);
+        motor2pwm = map(-analogVarX , ps3MaxAnalogNeg, 0, minUs, midUs);
+        motor3pwm = map(-analogVarX , ps3MaxAnalogNeg, 0, minUs, midUs);
+        motor4pwm = map(-analogVarX , ps3MaxAnalogNeg, 0, minUs, midUs);
+    }
+
+      else if((Ps3.data.analog.stick.rx > ps3Deadzone)){ 
+        analogVarX = abs(Ps3.data.analog.stick.rx);
+        
+        //Writing pwm signal for motor controllers
+        motor1pwm = map(analogVarX , 0, ps3MaxAnalogPos, midUs, maxUs);
+        motor2pwm = map(analogVarX , 0, ps3MaxAnalogPos, midUs, maxUs);
+        motor3pwm = map(analogVarX , 0, ps3MaxAnalogPos, midUs, maxUs);
+        motor4pwm = map(analogVarX , 0, ps3MaxAnalogPos, midUs, maxUs);
+    }
+
+    
+      //if is in Quadrant 1
+    else if((Ps3.data.analog.stick.lx > ps3Deadzone) && (Ps3.data.analog.stick.ly > ps3Deadzone)){
+        analogVarX = abs(Ps3.data.analog.stick.lx + 1);
+        analogVarY = abs(Ps3.data.analog.stick.ly + 1);
+
+        //Writing pwm signal for motor controllers
+        motor1pwm = map(analogVarX - analogVarY , ps3MaxAnalogNeg, ps3MaxAnalogPos, minUs, maxUs);
+        motor2pwm = map(((analogVarX + analogVarY) / 2) , 0, ps3MaxAnalogPos, midUs, maxUs);
+        motor3pwm = map(-((analogVarX + analogVarY) / 2) , ps3MaxAnalogNeg, 0, minUs, midUs);
+        motor4pwm = map(analogVarY - analogVarX , ps3MaxAnalogNeg, ps3MaxAnalogPos, minUs, maxUs);
+    }
+
+    //in Between 1 and 2
+    else if((Ps3.data.analog.stick.ly > ps3Deadzone) && (Ps3.data.analog.stick.lx < ps3Deadzone) && (Ps3.data.analog.stick.lx > -ps3Deadzone)){
+        analogVarY = abs(Ps3.data.analog.stick.ly + 1);
+        
+        //Writing pwm signal for motor controllers
+        motor1pwm = map(-analogVarY , ps3MaxAnalogNeg, 0, minUs, midUs);
+        motor2pwm = map(analogVarY , 0, ps3MaxAnalogPos, midUs, maxUs);
+        motor3pwm = map(-analogVarY , ps3MaxAnalogNeg, 0, minUs, midUs);
+        motor4pwm = map(analogVarY , 0, ps3MaxAnalogPos, midUs, maxUs);
+
+    }
+
+    //if is in quadrant 2
+    else if((Ps3.data.analog.stick.lx < -ps3Deadzone) && (Ps3.data.analog.stick.ly > ps3Deadzone)){
+        analogVarX = abs(Ps3.data.analog.stick.lx);
+        analogVarY = abs(Ps3.data.analog.stick.ly + 1);
       
-      //Writing pwm signal for motor controllers
-      motor1pwm = map(analogVarX , 0, ps3MaxAnalogPos, midUs, maxUs);
-      motor2pwm = map(analogVarX , 0, ps3MaxAnalogPos, midUs, maxUs);
-      motor3pwm = map(-analogVarX , ps3MaxAnalogNeg, 0, minUs, midUs);
-      motor4pwm = map(-analogVarX , ps3MaxAnalogNeg, 0, minUs, midUs);
+        //Writing pwm signal for motor controllers
+        motor1pwm = map(-((analogVarX + analogVarY) / 2) , ps3MaxAnalogNeg, 0, minUs, midUs);
+        motor2pwm = map(analogVarY - analogVarX , ps3MaxAnalogNeg, ps3MaxAnalogPos, minUs, maxUs);
+        motor3pwm = map(analogVarX - analogVarY , ps3MaxAnalogNeg, ps3MaxAnalogPos, minUs, maxUs);
+        motor4pwm = map(((analogVarX + analogVarY) / 2) , 0, ps3MaxAnalogPos, midUs, maxUs);
+    }
+
+    //in Between 1 and 3 
+    else if((Ps3.data.analog.stick.lx > ps3Deadzone) && (Ps3.data.analog.stick.ly < ps3Deadzone) && (Ps3.data.analog.stick.ly > -ps3Deadzone)){
+        analogVarX = abs(Ps3.data.analog.stick.lx + 1);
+        analogVarY = abs(Ps3.data.analog.stick.ly + 1);
+        
+        //Writing pwm signal for motor controllers
+        motor1pwm = map(analogVarX , 0, ps3MaxAnalogPos, midUs, maxUs);
+        motor2pwm = map(analogVarX , 0, ps3MaxAnalogPos, midUs, maxUs);
+        motor3pwm = map(-analogVarX , ps3MaxAnalogNeg, 0, minUs, midUs);
+        motor4pwm = map(-analogVarX , ps3MaxAnalogNeg, 0, minUs, midUs);
+    }
+
+      //in Between 2 and 4 
+    else if((Ps3.data.analog.stick.lx < -ps3Deadzone) && (Ps3.data.analog.stick.ly < ps3Deadzone) && (Ps3.data.analog.stick.ly > -ps3Deadzone)){
+        analogVarX = abs(Ps3.data.analog.stick.lx + 1);
+        analogVarY = abs(Ps3.data.analog.stick.ly + 1);
+        
+        //Writing pwm signal for motor controllers
+        motor1pwm = map(-analogVarX , ps3MaxAnalogNeg, 0, minUs, midUs);
+        motor2pwm = map(-analogVarX , ps3MaxAnalogNeg, 0, minUs, midUs);
+        motor3pwm = map(analogVarX , 0, ps3MaxAnalogPos, midUs, maxUs);
+        motor4pwm = map(analogVarX , 0, ps3MaxAnalogPos, midUs, maxUs);
+    }
+
+    //if is in Quadrant 3 
+    else if((Ps3.data.analog.stick.lx > ps3Deadzone) && (Ps3.data.analog.stick.ly < -ps3Deadzone)){
+        analogVarX = abs(Ps3.data.analog.stick.lx + 1);
+        analogVarY = abs(Ps3.data.analog.stick.ly);
+        //Writing pwm signal for motor controllers
+
+        motor1pwm = map(((analogVarX + analogVarY) / 2) , 0, ps3MaxAnalogPos, midUs, maxUs);
+        motor2pwm = map(analogVarX - analogVarY, ps3MaxAnalogNeg, ps3MaxAnalogPos, minUs, maxUs);
+        motor3pwm = map(analogVarY - analogVarX , ps3MaxAnalogNeg, ps3MaxAnalogPos, minUs, maxUs);
+        motor4pwm = map(-((analogVarX + analogVarY) / 2) , ps3MaxAnalogNeg, 0, minUs, midUs);      
+    }
+
+    //in Between 3 and 4
+    else if((Ps3.data.analog.stick.ly < -ps3Deadzone) && (Ps3.data.analog.stick.lx < ps3Deadzone) && (Ps3.data.analog.stick.lx > -ps3Deadzone)){
+        analogVarX = abs(Ps3.data.analog.stick.lx);
+        analogVarY = abs(Ps3.data.analog.stick.ly + 1);
+
+        //Writing pwm signal for motor controllers
+        motor1pwm = map(analogVarY , 0, ps3MaxAnalogPos, midUs, maxUs);
+        motor2pwm = map(-analogVarY , ps3MaxAnalogNeg, 0, minUs, midUs);
+        motor3pwm = map(analogVarY , 0, ps3MaxAnalogPos, midUs, maxUs);
+        motor4pwm = map(-analogVarY , ps3MaxAnalogNeg, 0, minUs, midUs);
+    }
+
+    //if is in Quadrant 4
+    else if((Ps3.data.analog.stick.lx < -ps3Deadzone) && (Ps3.data.analog.stick.ly < -ps3Deadzone)){
+        analogVarX = abs(Ps3.data.analog.stick.lx);
+        analogVarY = abs(Ps3.data.analog.stick.ly + 1);
+
+        //Writing pwm signal for motor controllers
+        motor1pwm = map(analogVarY - analogVarX , ps3MaxAnalogNeg, ps3MaxAnalogPos, minUs, maxUs);
+        motor2pwm = map(-((analogVarX + analogVarY) / 2) , ps3MaxAnalogNeg, 0, minUs, midUs);   
+        motor3pwm = map(((analogVarX + analogVarY) / 2) , 0, ps3MaxAnalogPos, midUs, maxUs);
+        motor4pwm = map(analogVarX - analogVarY, ps3MaxAnalogNeg, ps3MaxAnalogPos, minUs, maxUs); 
+    }
+
+      else {
+        motor1pwm = 1500;
+        motor2pwm = 1500;
+        motor3pwm = 1500;
+        motor4pwm = 1500;
+    }
+
+    if (Ps3.event.button_down.r1){
+      servo1pwm = servo1OpenPwm;
+    }
+
+    else if (Ps3.event.button_down.r2){
+      servo1pwm = servo1ClosedPwm;
+    }
   }
 
-    //in Between 2 and 4 
-  else if((Ps3.data.analog.stick.lx < -ps3Deadzone) && (Ps3.data.analog.stick.ly < ps3Deadzone) && (Ps3.data.analog.stick.ly > -ps3Deadzone)){
-      analogVarX = abs(Ps3.data.analog.stick.lx + 1);
-      analogVarY = abs(Ps3.data.analog.stick.ly + 1);
-      
-      //Writing pwm signal for motor controllers
-      motor1pwm = map(-analogVarX , ps3MaxAnalogNeg, 0, minUs, midUs);
-      motor2pwm = map(-analogVarX , ps3MaxAnalogNeg, 0, minUs, midUs);
-      motor3pwm = map(analogVarX , 0, ps3MaxAnalogPos, midUs, maxUs);
-      motor4pwm = map(analogVarX , 0, ps3MaxAnalogPos, midUs, maxUs);
-  }
 
-  //if is in Quadrant 3 
-  else if((Ps3.data.analog.stick.lx > ps3Deadzone) && (Ps3.data.analog.stick.ly < -ps3Deadzone)){
-      analogVarX = abs(Ps3.data.analog.stick.lx + 1);
-      analogVarY = abs(Ps3.data.analog.stick.ly);
-      //Writing pwm signal for motor controllers
-
-      motor1pwm = map(((analogVarX + analogVarY) / 2) , 0, ps3MaxAnalogPos, midUs, maxUs);
-      motor2pwm = map(analogVarX - analogVarY, ps3MaxAnalogNeg, ps3MaxAnalogPos, minUs, maxUs);
-      motor3pwm = map(analogVarY - analogVarX , ps3MaxAnalogNeg, ps3MaxAnalogPos, minUs, maxUs);
-      motor4pwm = map(-((analogVarX + analogVarY) / 2) , ps3MaxAnalogNeg, 0, minUs, midUs);      
-  }
-
-  //in Between 3 and 4
-  else if((Ps3.data.analog.stick.ly < -ps3Deadzone) && (Ps3.data.analog.stick.lx < ps3Deadzone) && (Ps3.data.analog.stick.lx > -ps3Deadzone)){
-      analogVarX = abs(Ps3.data.analog.stick.lx);
-      analogVarY = abs(Ps3.data.analog.stick.ly + 1);
-
-      //Writing pwm signal for motor controllers
-      motor1pwm = map(analogVarY , 0, ps3MaxAnalogPos, midUs, maxUs);
-      motor2pwm = map(-analogVarY , ps3MaxAnalogNeg, 0, minUs, midUs);
-      motor3pwm = map(analogVarY , 0, ps3MaxAnalogPos, midUs, maxUs);
-      motor4pwm = map(-analogVarY , ps3MaxAnalogNeg, 0, minUs, midUs);
-  }
-
-  //if is in Quadrant 4
-  else if((Ps3.data.analog.stick.lx < -ps3Deadzone) && (Ps3.data.analog.stick.ly < -ps3Deadzone)){
-      analogVarX = abs(Ps3.data.analog.stick.lx);
-      analogVarY = abs(Ps3.data.analog.stick.ly + 1);
-
-      //Writing pwm signal for motor controllers
-      motor1pwm = map(analogVarY - analogVarX , ps3MaxAnalogNeg, ps3MaxAnalogPos, minUs, maxUs);
-      motor2pwm = map(-((analogVarX + analogVarY) / 2) , ps3MaxAnalogNeg, 0, minUs, midUs);   
-      motor3pwm = map(((analogVarX + analogVarY) / 2) , 0, ps3MaxAnalogPos, midUs, maxUs);
-      motor4pwm = map(analogVarX - analogVarY, ps3MaxAnalogNeg, ps3MaxAnalogPos, minUs, maxUs); 
-  }
-
-  if (Ps3.event.button_down.r1){
-    servo1pwm = servo1OpenPwm;
-  }
-
-  else if (Ps3.event.button_down.r2){
-    servo1pwm = servo1ClosedPwm;
-  }
-
-
-  else {
-      motor1pwm = 1500;
-      motor2pwm = 1500;
-      motor3pwm = 1500;
-      motor4pwm = 1500;
-  }
 
 /*
 Serial.print("motor1:");
