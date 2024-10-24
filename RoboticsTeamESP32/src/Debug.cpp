@@ -7,6 +7,27 @@ bool isNotConnected = true;
 Servo Test1;
 ultraSonic sensor;
 
+float normalDuration = 300; //TBD normal duration of ultrasonic pulse at floor distance
+unsigned long prevMillisPulse; //last time sensors were pulsed
+unsigned long prevMillisDebounce; //last time sensors were pulsed
+bool objectInPlow;
+long sensorTrigDelay = 50; //delay between sensor pulses ms
+long sensorDebounce = 500; //Amount of time before sensor will say there is no longer an object ms
+
+//pins which will trigger ultrasonic pulse
+int trigPin1 = 16;
+int trigPin2 = 17;
+int trigPin3 = 19;
+int trigPin4 = 18;
+
+//pins which will recieve ultrasonic pulse time
+int echoPin1 = 34;
+int echoPin2 = 35;
+int echoPin3 = 32;
+int echoPin4 = 33;
+
+int sensorIndex = 1; //which sensor to pulse
+
 bool objectRumble;
 int mode = 0;//0 For Stopped, 1 Manual Mode, 2 for Start Automatic Mode 
 
@@ -60,7 +81,8 @@ void fwMove();
 void bwMove();
 void ccwTurn();
 void cwTurn();
-void checkForFreeze();
+bool singleSensorDetect(int trigPin, int echoPin);
+bool objectDetected();
 
 
 void setup()
@@ -82,34 +104,22 @@ void setup()
   motor4.attach(27); //back right motor
   servo1.attach(4);  //close open plow servo
 
-  ultraSonic sensor;
-  sensor.normalDuration = 0; //TBD normal duration of ultrasonic pulse at floor distance
-  sensor.sensorTrigDelay = 50; //trigger delay in milliseconds, research shows will dissapate in 50 ms
-  sensor.sensorDebounce = 1000; //debounce timer in ms for objectDetection in plow
+ 
+
 
   //trig pin setup
-  sensor.trigPin1 = 16;
-  sensor.trigPin2 = 17;
-  sensor.trigPin3 = 19;
-  sensor.trigPin4 = 18;
-  pinMode(sensor.trigPin1, OUTPUT);
-  pinMode(sensor.trigPin2, OUTPUT);
-  pinMode(sensor.trigPin3, OUTPUT);
-  pinMode(sensor.trigPin4, OUTPUT);
-
+  pinMode(trigPin1, OUTPUT);
+  pinMode(trigPin2, OUTPUT);
+  pinMode(trigPin3, OUTPUT);
+  pinMode(trigPin4, OUTPUT);
 
   //echo pin setup
-  sensor.echoPin1 = 34;
-  sensor.echoPin2 = 35;
-  sensor.echoPin3 = 32;
-  sensor.echoPin4 = 33;
-  pinMode(sensor.echoPin1, OUTPUT);
-  pinMode(sensor.echoPin2, OUTPUT);
-  pinMode(sensor.echoPin3, OUTPUT);
-  pinMode(sensor.echoPin4, OUTPUT);
+  pinMode(echoPin1, OUTPUT);
+  pinMode(echoPin2, OUTPUT);
+  pinMode(echoPin3, OUTPUT);
+  pinMode(echoPin4, OUTPUT);
 
   //Button Pin Setting
-  
   pinMode(freezeLEDPin, OUTPUT);
   pinMode(freezeButtonPin, OUTPUT);
 
@@ -385,4 +395,48 @@ void cwTurn(){
   motor2pwm = maxUs;
   motor3pwm = maxUs;
   motor4pwm = maxUs;
+}
+
+bool singleSensorDetect(int trigPin, int echoPin){
+    
+    float duration; //how long between pulse and reception
+
+    digitalWrite(trigPin, LOW);//ensuring trig pin is in LOW
+    delayMicroseconds(2);
+
+    digitalWrite(trigPin, HIGH);//pulsing ultrasonic for 10 micro seconds
+    delayMicroseconds(10);
+
+    digitalWrite(trigPin, LOW);//setting pin back to low
+
+    duration = pulseIn(echoPin, HIGH);//measuring duration of pulse wiht pulse in
+
+    return (duration < normalDuration);//returing true if the distance is closer than the floor
+}
+
+bool objectDetected(){
+
+    if (currentMillis - sensorTrigDelay > prevMillisPulse){ //if it has been delay time since last run, run again
+
+        //can only pulse one sensor every delay to allow for correct measurement, if there is anything detected objectInPlow = true
+             if(sensorIndex == 1) {objectInPlow = singleSensorDetect(trigPin1, echoPin1);}
+        else if(sensorIndex == 2) {objectInPlow = singleSensorDetect(trigPin2, echoPin2);}
+        else if(sensorIndex == 3) {objectInPlow = singleSensorDetect(trigPin3, echoPin3);}
+        else if(sensorIndex == 4) {objectInPlow = singleSensorDetect(trigPin4, echoPin4);}
+
+        
+
+        if (++sensorIndex > 4) { sensorIndex = 1;}//increment the index and set to 1 if over 8
+        prevMillisPulse = millis(); //set previous milliseconds to test for next time funtion is run
+        
+    }
+    //debounce timer
+    if(objectInPlow){//return true of object detected
+        Serial.print("Test");
+        return true;
+        prevMillisDebounce = millis();
+    }
+    else if (currentMillis - sensorDebounce > prevMillisDebounce) return false;//if object has not been detected in sensorDebounce time return false
+    
+    return false;
 }
