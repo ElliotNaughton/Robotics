@@ -12,7 +12,7 @@ long sensorTrigDelay = 50; //delay between sensor pulses ms
 long sensorDebounce = 500; //Amount of time before sensor will say there is no longer an object ms
 
 //pins which will trigger ultrasonic pulse
-int trigPin1 = 16;
+int trigPin1 = 5;
 int trigPin2 = 17;
 int trigPin3 = 19;
 int trigPin4 = 18;
@@ -33,7 +33,7 @@ int freezeButtonPin = 25;
 int freezeLEDPin = 26;
 
 
-int plowLiftPin = 23; //pin for relay to actuators to lift plow
+int plowLiftPin = 15; //pin for relay to actuators to lift plow
 bool plowState = false; //tracks state of plow, either up (true) or down (false)
 
 int pwmOutput;
@@ -98,35 +98,37 @@ void setup()
   motor1.attach(13); //front left motor
   motor2.attach(12); //front right motor
   motor3.attach(14); //back left motor
-  motor4.attach(27); //back right motor
+  motor4.attach(2); //back right motor
   servo1.attach(4);  //close open plow servo
 
  
 
-
+  
   //trig pin setup
   pinMode(trigPin1, OUTPUT);
   pinMode(trigPin2, OUTPUT);
   pinMode(trigPin3, OUTPUT);
   pinMode(trigPin4, OUTPUT);
+  
 
   //echo pin setup
-  pinMode(echoPin1, OUTPUT);
-  pinMode(echoPin2, OUTPUT);
-  pinMode(echoPin3, OUTPUT);
-  pinMode(echoPin4, OUTPUT);
+  pinMode(echoPin1, INPUT);
+  pinMode(echoPin2, INPUT);
+  pinMode(echoPin3, INPUT);
+  pinMode(echoPin4, INPUT);
+  
 
   //Button Pin Setting
   pinMode(freezeLEDPin, OUTPUT);
   pinMode(freezeButtonPin, OUTPUT);
 
 
-    xTaskCreate(//task to read from ps3 controller and write to motor pwm
+  xTaskCreate(//task to read from ps3 controller and write to motor pwm
       writeToMotors,    // Function that should be called
-      "PS3 Read PWM Write",  // Name of the task (for debugging)
-      1000,            // Stack size (bytes)
+      "Write To Motors",  // Name of the task (for debugging)
+      10000,            // Stack size (bytes)
       NULL,            // Parameter to pass
-      6,               // Task priority
+      5,               // Task priority
       NULL             // Task handle
   );
 
