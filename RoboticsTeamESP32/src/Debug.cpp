@@ -4,6 +4,7 @@
 
 bool isNotConnected = true;
 bool ranonce = true;
+bool STATE = LOW;
 
 float normalDuration = 300; //TBD normal duration of ultrasonic pulse at floor distance
 unsigned long prevMillisPulse; //last time sensors were pulsed
@@ -11,6 +12,9 @@ unsigned long prevMillisDebounce; //last time sensors were pulsed
 bool objectInPlow;
 long sensorTrigDelay = 50; //delay between sensor pulses ms
 long sensorDebounce = 500; //Amount of time before sensor will say there is no longer an object ms
+int speedPercentage = 0.5; //0.0 - 1.0
+
+int internalLEDPin = 2;
 
 //pins which will trigger ultrasonic pulse
 int trigPin1 = 5;
@@ -63,9 +67,9 @@ int motor2pwm;
 int motor3pwm;
 int motor4pwm;
 int servo1pwm;
-int maxUs = 1950;
-int midUs = 1500;
-int minUs = 1000;
+int maxUs = 1950; //Maximum Limit of PWM (1950)
+int midUs = 1500; //Mid point of PWM (1500)
+int minUs = 1000; //Minumum Limit of PWM (1000)
 int ps5MaxAnalogPos = 125;
 int ps5MaxAnalogNeg = -125;
 int ps5Deadzone = 4;
@@ -88,11 +92,10 @@ void setup()
   prevMillisFreeze = millis();
   blinkMillis = millis();
 
-  pinMode(2,OUTPUT);
+  pinMode(internalLEDPin,OUTPUT);
 
   Serial.begin(115200);
   ps5.begin("bc:c7:46:42:c6:8c");
-  Serial.println("Ready.");
 
   pinMode(plowLiftPin, OUTPUT);
 
@@ -121,7 +124,7 @@ void setup()
 
   //Button Pin Setting
   pinMode(freezeLEDPin, OUTPUT);
-  pinMode(freezeButtonPin, INPUT);
+  pinMode(freezeButtonPin, OUTPUT);
 
 
   xTaskCreatePinnedToCore(//task to read from ps5 controller and write to motor pwm
@@ -134,7 +137,7 @@ void setup()
       1               // Task pinned to core 1
   );
  
-
+Serial.println("Ready.");
 }
 
 void loop()
@@ -152,12 +155,12 @@ void ps5ReadOrAuto(void * parameter){//task to read from ps5 controller and writ
       Serial.println("Connected!");
       isNotConnected = false;
       Serial.println(xPortGetCoreID());
-      digitalWrite(2,HIGH);
+      digitalWrite(internalLEDPin,HIGH);
     }
 
     else if (!ps5.isConnected()){
       isNotConnected = true;
-      digitalWrite(2,LOW);
+      digitalWrite(internalLEDPin,LOW);
     }
 
     /*
@@ -338,20 +341,21 @@ void ps5ReadOrAuto(void * parameter){//task to read from ps5 controller and writ
 
     Serial.print("FROZEN for:");
     Serial.print(currentMillis - prevMillisFreeze);
-    Serial.println("Milliseconds");
+    Serial.println(" Milliseconds");
 
-    if(currentMillis - 1000 < blinkMillis) {
-      if (freezeLEDPin == HIGH) freezeLEDPin = LOW;
-      else freezeLEDPin = HIGH;
+    if(currentMillis - 250 > blinkMillis) {
+      if (STATE == LOW) STATE = HIGH;
+      else STATE = LOW;
+      digitalWrite(freezeLEDPin,STATE);
       blinkMillis = millis();
       }
     }
 
     else{
-    motor1.writeMicroseconds(constrain(motor1pwm,minUs,maxUs));
-    motor2.writeMicroseconds(constrain(motor2pwm,minUs,maxUs));
-    motor3.writeMicroseconds(constrain(motor3pwm,minUs,maxUs));
-    motor4.writeMicroseconds(constrain(motor4pwm,minUs,maxUs));
+    motor1.writeMicroseconds(speedPercentage / 100 * constrain(motor1pwm,minUs,maxUs));
+    motor2.writeMicroseconds(speedPercentage / 100 * constrain(motor2pwm,minUs,maxUs));
+    motor3.writeMicroseconds(speedPercentage / 100 * constrain(motor3pwm,minUs,maxUs));
+    motor4.writeMicroseconds(speedPercentage / 100 * constrain(motor4pwm,minUs,maxUs));
     servo1.writeMicroseconds(servo1pwm);
 
     Serial.print("motor1:");
@@ -362,6 +366,7 @@ void ps5ReadOrAuto(void * parameter){//task to read from ps5 controller and writ
     Serial.print(constrain(motor3pwm,minUs,maxUs));
     Serial.print(" motor4:");
     Serial.println(constrain(motor4pwm,minUs,maxUs));
+    digitalWrite(freezeLEDPin,LOW);
     }
 
   }
