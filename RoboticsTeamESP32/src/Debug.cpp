@@ -26,6 +26,9 @@ int rotation = 1; //Starts at 1, 2 is 1 turn to the right, 3 is opposite of star
 bool stoppedFlag = false;
 bool seqStartFlag = false;
 bool objectDetectedflag = false;
+int robotStartArea = 0;//1 for field to right, 0 for field to left
+bool readyToDropFlag = false;
+bool readyForResetFlag = false;
 
 
 
@@ -357,25 +360,80 @@ void ps5ReadOrAuto(void * parameter){//task to read from ps5 controller and writ
         
         if(currentMillis - moveTime < prevMillisMove && seqStartFlag == false){
           if(objectDetectedflag){
+            if(readyForResetFlag){
+              digitalWrite(plowLiftPin,LOW);
+              readyForResetFlag = false;
+              objectDetectedflag = false;
+            }
+            if(xPos > 0){
+              if(rotation == 1)requestedMove = 3;
+              else if(rotation < 4)requestedMove = 4;
+              else requestedMove = 1;
+            }
+            else if(xPos < 0){
+              if(rotation > 2)requestedMove = 3;
+              else if(rotation < 2)requestedMove = 4;
+              else requestedMove = 1;
+            }
+            else if(yPos > 1){
+              if(rotation > 3)requestedMove = 3;
+              else if(rotation < 3)requestedMove = 4;
+              else requestedMove = 1;
+            }
+
+            else if(robotStartArea == 1 && xPos == 0 && yPos == 1 && readyToDropFlag == false){
+              requestedMove = 4;
+              readyToDropFlag = true;
+            }
+
+            else if(robotStartArea == 0 && xPos == 0 && yPos == 1 && readyToDropFlag == false){
+              requestedMove = 3;
+              readyToDropFlag = true;
+            }
+
+            else if(readyToDropFlag = true){
+              servo1pwm = servo1OpenPwm;
+              digitalWrite(plowLiftPin,HIGH);
+              if(robotStartArea == 1) requestedMove = 4;
+              else if(robotStartArea == 0) requestedMove = 3;
+              readyToDropFlag = false;
+              readyForResetFlag = true;
+            }
+
 
           }
 
-          else if( xPos == 0 && yPos == 0 && totalStepNumber == 0){
-            requestedMove = 1;
-            yPos++;
-            totalStepNumber++;
-          }
-
-          else if(yPos < 5){
-            requestedMove = 1;
-            yPos++;
-            totalStepNumber++;
-          }
+          else if( xPos == 0 && yPos == 0 && totalStepNumber == 0)requestedMove = 1;
+          else if(yPos < 5 && xPos == 0) requestedMove = 1;
 
           else if(yPos >= 5 && xPos == 0){
-            requestedMove = 4;
+            if(robotStartArea == 1)requestedMove = 4;
+            else requestedMove = 3;
+          }
+          else if(yPos >= 5 && xPos == 0 && rotation != 1) requestedMove = 1;
+          else if(xPos != 0 && yPos >= 0){
+            if(robotStartArea == 1)requestedMove = 4;
+            else requestedMove = 3;
           }
 
+          if(requestedMove == 1){
+            moveTime = 1000;//move forward for 1 second
+
+            if(rotation == 1)yPos++;
+            else if(rotation == 2)xPos++;
+            else if(rotation == 3)yPos--;
+            else if(rotation == 4)xPos--;
+          }
+          else{
+            moveTime = 500; //TBD
+            if(requestedMove == 4)rotation++;
+            else if (requestedMove == 3)rotation--;
+          }
+
+          if(rotation > 4) rotation = 1;
+          else if (rotation < 1) rotation = 4;
+          if(objectDetectedflag) totalStepNumber--;
+          else totalStepNumber++;
           seqStartFlag = true;
         }
 
