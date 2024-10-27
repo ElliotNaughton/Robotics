@@ -29,6 +29,7 @@ bool objectDetectedflag = false;
 int robotStartArea = 0;//1 for field to right, 0 for field to left
 bool readyToDropFlag = false;
 bool readyForResetFlag = false;
+bool objectGrabbedFlag = false;
 
 
 
@@ -107,6 +108,7 @@ void fwMove();//Forward move in auto
 void bwMove();//Backward move in auto
 void ccwTurn();//Counter Clockwise move in auto
 void cwTurn();//Clockwise move in auto
+void stop();
 bool singleSensorDetect(int trigPin, int echoPin);//one ultra sonic sensor pulse and read
 bool objectDetected();//multiple ultra sonic sensor pulse and read
 
@@ -360,10 +362,18 @@ void ps5ReadOrAuto(void * parameter){//task to read from ps5 controller and writ
         
         if(currentMillis - moveTime < prevMillisMove && seqStartFlag == false){
           if(objectDetectedflag){
-            if(readyForResetFlag){
+            
+            if (objectGrabbedFlag == false){
+              servo1pwm = servo1ClosedPwm;
+              objectGrabbedFlag = true;
+            }
+            else if(readyForResetFlag){
               digitalWrite(plowLiftPin,LOW);
               readyForResetFlag = false;
               objectDetectedflag = false;
+              objectGrabbedFlag = false;
+              if(robotStartArea == 1) requestedMove = 4;
+              else requestedMove = 3;
             }
             if(xPos > 0){
               if(rotation == 1)requestedMove = 3;
@@ -394,8 +404,6 @@ void ps5ReadOrAuto(void * parameter){//task to read from ps5 controller and writ
             else if(readyToDropFlag = true){
               servo1pwm = servo1OpenPwm;
               digitalWrite(plowLiftPin,HIGH);
-              if(robotStartArea == 1) requestedMove = 4;
-              else if(robotStartArea == 0) requestedMove = 3;
               readyToDropFlag = false;
               readyForResetFlag = true;
             }
@@ -516,6 +524,11 @@ void ps5ReadOrAuto(void * parameter){//task to read from ps5 controller and writ
       }
     }
 
+    else{
+      STATE = LOW;
+      digitalWrite(freezeLEDPin,STATE);
+    }
+
   
     motor1.writeMicroseconds(constrain(motor1pwm,minUs,maxUs));
     motor2.writeMicroseconds(constrain(motor2pwm,minUs,maxUs));
@@ -524,7 +537,7 @@ void ps5ReadOrAuto(void * parameter){//task to read from ps5 controller and writ
     servo1.writeMicroseconds(servo1pwm);
 
     
-    Serial.print("motor1:");
+    /*Serial.print("motor1:");
     Serial.print(constrain(motor1pwm,minUs,maxUs));
     Serial.print(" motor2:");
     Serial.print(constrain(motor2pwm,minUs,maxUs));
@@ -533,6 +546,7 @@ void ps5ReadOrAuto(void * parameter){//task to read from ps5 controller and writ
     Serial.print(" motor4:");
     Serial.println(constrain(motor4pwm,minUs,maxUs));
     digitalWrite(freezeLEDPin,LOW);
+    */
   }
 
 }
