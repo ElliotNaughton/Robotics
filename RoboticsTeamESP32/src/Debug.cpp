@@ -5,16 +5,15 @@
 bool isNotConnected = true;
 bool ranonce = true;
 bool STATE = LOW;
+bool objectInPlow;
 
 float normalDuration = 300; //TBD normal duration of ultrasonic pulse at floor distance
 unsigned long prevMillisPulse; //last time sensors were pulsed
 unsigned long prevMillisDebounce; //last time sensors were pulsed
-bool objectInPlow;
 long sensorTrigDelay = 50; //delay between sensor pulses ms
 long sensorDebounce = 500; //Amount of time before sensor will say there is no longer an object ms
-int speedPercentage = 0.5; //0.0 - 1.0
 
-int internalLEDPin = 2;
+/////////////////////// Pin Setup /////////////////////////////////////
 
 //pins which will trigger ultrasonic pulse
 int trigPin1 = 5;
@@ -28,45 +27,47 @@ int echoPin2 = 35;
 int echoPin3 = 32;
 int echoPin4 = 33;
 
-int sensorIndex = 1; //which sensor to pulse
+int internalLEDPin = 2;  //Internal LED on ESP32 connected to GPIO2
+int sensorIndex = 1;     //which sensor to pulse
+int freezeButtonPin = 27; //Freeze button inpin pin
+int freezeLEDPin = 26;  //Freeze Button LED pin
+int plowLiftPin = 15; //pin for relay to actuators to lift plow
 
-bool objectRumble;
+
 int mode = 1;//0 For Stopped, 1 Manual Mode, 2 for Start Automatic Mode 
 
 bool isFrozen = false;
-int freezeButtonPin = 27;
-int freezeLEDPin = 26;
-
-
-int plowLiftPin = 15; //pin for relay to actuators to lift plow
 bool plowState = false; //tracks state of plow, either up (true) or down (false)
 
-int pwmOutput;
-int analogVar3;
 
-unsigned long currentMillis;
-unsigned long prevMillisGlobal;
+
+///////////////////////////// Millisecond Timer Setup ////////////////////////////////
+unsigned long prevMillis1SecMove;
 unsigned long prevMillisFreeze;
+unsigned long prevMillisAuto;
+unsigned long currentMillis;
 unsigned long blinkMillis;
 unsigned long fwMoveMillis;
 unsigned long bkMoveMillis;
 unsigned long ccwMoveMillis;
 unsigned long cwMoveMillis;
 
+/////////////////////// Motor/Servo Setup ////////////////////////////
 Servo motor1;
 Servo motor2;
 Servo motor3;
 Servo motor4;
 Servo servo1;
-
-int analogVarX;
-int analogVarY;
-int analogVarF;
 int motor1pwm;
 int motor2pwm;
 int motor3pwm;
 int motor4pwm;
 int servo1pwm;
+
+////////////////////PS5 Controller Setup////////////////////////////////
+int analogVarX; //X analog stick variable
+int analogVarY; //Y analog stick variable
+int analogVarF;
 int maxUs = 1950; //Maximum Limit of PWM (1950)
 int midUs = 1500; //Mid point of PWM (1500)
 int minUs = 1000; //Minumum Limit of PWM (1000)
@@ -76,28 +77,28 @@ int ps5Deadzone = 4;
 int servo1ClosedPwm = 1000;
 int servo1OpenPwm = 1800;
 
+///////////////////// Function Declerations//////////////////////
 void ps5ReadOrAuto(void * parameter); //task to read from ps5 controller and write to motor pwm
-void fwMove();
-void bwMove();
-void ccwTurn();
-void cwTurn();
-bool singleSensorDetect(int trigPin, int echoPin);
-bool objectDetected();
+void fwMove();//Forward move in auto
+void bwMove();//Backward move in auto
+void ccwTurn();//Counter Clockwise move in auto
+void cwTurn();//Clockwise move in auto
+bool singleSensorDetect(int trigPin, int echoPin);//one ultra sonic sensor pulse and read
+bool objectDetected();//multiple ultra sonic sensor pulse and read
 
 
 void setup()
 {
+  ///////////// Setting miliseconds to current time //////////////
   currentMillis = millis();
-  prevMillisGlobal = millis();
   prevMillisFreeze = millis();
   blinkMillis = millis();
 
-  pinMode(internalLEDPin,OUTPUT);
-
+///////////
   Serial.begin(115200);
   ps5.begin("bc:c7:46:42:c6:8c");
 
-  pinMode(plowLiftPin, OUTPUT);
+
 
   motor1.attach(13); //front left motor
   motor2.attach(12); //front right motor
@@ -105,28 +106,23 @@ void setup()
   motor4.attach(25); //back right motor
   servo1.attach(4);  //close open plow servo
 
- 
-
-  
-  //trig pin setup
-  pinMode(trigPin1, OUTPUT);
-  pinMode(trigPin2, OUTPUT);
-  pinMode(trigPin3, OUTPUT);
-  pinMode(trigPin4, OUTPUT);
-  
-
-  //echo pin setup
+ ////////// INPUT Pin Mode Setup ////////////
   pinMode(echoPin1, INPUT);
   pinMode(echoPin2, INPUT);
   pinMode(echoPin3, INPUT);
   pinMode(echoPin4, INPUT);
-  
+  pinMode(freezeButtonPin, OUTPUT); //For Some reason freeze button works better in output mode
 
-  //Button Pin Setting
+/////////// OUTPUT Pin Mode Setup/////////
+  pinMode(trigPin1, OUTPUT);
+  pinMode(trigPin2, OUTPUT);
+  pinMode(trigPin3, OUTPUT);
+  pinMode(trigPin4, OUTPUT);
   pinMode(freezeLEDPin, OUTPUT);
-  pinMode(freezeButtonPin, OUTPUT);
+  pinMode(internalLEDPin,OUTPUT);
+  pinMode(plowLiftPin, OUTPUT);
 
-
+////////Task to Read from the PS5 Controller and write to Motors, on Core 1 due to all overhead being on Core 0///////
   xTaskCreatePinnedToCore(//task to read from ps5 controller and write to motor pwm
       ps5ReadOrAuto,    // Function that should be called
       "ps5 Read PWM Write",  // Name of the task (for debugging)
@@ -137,12 +133,12 @@ void setup()
       1               // Task pinned to core 1
   );
  
-Serial.println("Ready.");
+Serial.println("Ready."); //Printing ready to the serial monitor when setup is finished
 }
 
 void loop()
 {
-   vTaskDelete(NULL);
+   vTaskDelete(NULL);//deleting the loop task
 }
 
 void ps5ReadOrAuto(void * parameter){//task to read from ps5 controller and write to motor pwm
@@ -150,11 +146,10 @@ void ps5ReadOrAuto(void * parameter){//task to read from ps5 controller and writ
     currentMillis = millis();
 
     
-      
-      if (ps5.isConnected() && isNotConnected){
+    ////////////// PS5 Connection Diagnostic LED //////////////////
+    if (ps5.isConnected() && isNotConnected){
       Serial.println("Connected!");
       isNotConnected = false;
-      Serial.println(xPortGetCoreID());
       digitalWrite(internalLEDPin,HIGH);
     }
 
@@ -178,7 +173,7 @@ void ps5ReadOrAuto(void * parameter){//task to read from ps5 controller and writ
     ///Start of Manual Mode
     if (mode == 1){
 
-
+      //Right stick to the Left
       if((ps5.data.analog.stick.rx < -ps5Deadzone)){ 
           analogVarX = abs(ps5.data.analog.stick.rx);
           
@@ -189,18 +184,19 @@ void ps5ReadOrAuto(void * parameter){//task to read from ps5 controller and writ
           motor4pwm = map(-analogVarX , ps5MaxAnalogNeg, 0, minUs, midUs);
       }
 
-        else if((ps5.data.analog.stick.rx > ps5Deadzone)){ 
-          analogVarX = abs(ps5.data.analog.stick.rx);
-          
-          //Writing pwm signal for motor controllers
-          motor1pwm = map(analogVarX , 0, ps5MaxAnalogPos, midUs, maxUs);
-          motor2pwm = map(analogVarX , 0, ps5MaxAnalogPos, midUs, maxUs);
-          motor3pwm = map(analogVarX , 0, ps5MaxAnalogPos, midUs, maxUs);
-          motor4pwm = map(analogVarX , 0, ps5MaxAnalogPos, midUs, maxUs);
+      //Right stick to the right
+      else if((ps5.data.analog.stick.rx > ps5Deadzone)){ 
+        analogVarX = abs(ps5.data.analog.stick.rx);
+        
+        //Writing pwm signal for motor controllers
+        motor1pwm = map(analogVarX , 0, ps5MaxAnalogPos, midUs, maxUs);
+        motor2pwm = map(analogVarX , 0, ps5MaxAnalogPos, midUs, maxUs);
+        motor3pwm = map(analogVarX , 0, ps5MaxAnalogPos, midUs, maxUs);
+        motor4pwm = map(analogVarX , 0, ps5MaxAnalogPos, midUs, maxUs);
       }
 
       
-        //if is in Quadrant 1
+        //Left stick 45 degree up and left
       else if((ps5.data.analog.stick.lx > ps5Deadzone) && (ps5.data.analog.stick.ly > ps5Deadzone)){
           analogVarX = abs(ps5.data.analog.stick.lx + 1);
           analogVarY = abs(ps5.data.analog.stick.ly + 1);
@@ -212,7 +208,7 @@ void ps5ReadOrAuto(void * parameter){//task to read from ps5 controller and writ
           motor4pwm = map(analogVarY - analogVarX , ps5MaxAnalogNeg, ps5MaxAnalogPos, minUs, maxUs);
       }
 
-      //in Between 1 and 2
+      //Left stick straight up
       else if((ps5.data.analog.stick.ly > ps5Deadzone) && (ps5.data.analog.stick.lx < ps5Deadzone) && (ps5.data.analog.stick.lx > -ps5Deadzone)){
           analogVarY = abs(ps5.data.analog.stick.ly + 1);
           
@@ -224,7 +220,7 @@ void ps5ReadOrAuto(void * parameter){//task to read from ps5 controller and writ
 
       }
 
-      //if is in quadrant 2
+      //Left stick up and to the right
       else if((ps5.data.analog.stick.lx < -ps5Deadzone) && (ps5.data.analog.stick.ly > ps5Deadzone)){
           analogVarX = abs(ps5.data.analog.stick.lx);
           analogVarY = abs(ps5.data.analog.stick.ly + 1);
@@ -236,7 +232,7 @@ void ps5ReadOrAuto(void * parameter){//task to read from ps5 controller and writ
           motor4pwm = map(((analogVarX + analogVarY) / 2) , 0, ps5MaxAnalogPos, midUs, maxUs);
       }
 
-      //in Between 1 and 3 
+      //Left stick straight left
       else if((ps5.data.analog.stick.lx > ps5Deadzone) && (ps5.data.analog.stick.ly < ps5Deadzone) && (ps5.data.analog.stick.ly > -ps5Deadzone)){
           analogVarX = abs(ps5.data.analog.stick.lx + 1);
           analogVarY = abs(ps5.data.analog.stick.ly + 1);
@@ -248,7 +244,7 @@ void ps5ReadOrAuto(void * parameter){//task to read from ps5 controller and writ
           motor4pwm = map(-analogVarX , ps5MaxAnalogNeg, 0, minUs, midUs);
       }
 
-        //in Between 2 and 4 
+        //Left stick straight right
       else if((ps5.data.analog.stick.lx < -ps5Deadzone) && (ps5.data.analog.stick.ly < ps5Deadzone) && (ps5.data.analog.stick.ly > -ps5Deadzone)){
           analogVarX = abs(ps5.data.analog.stick.lx + 1);
           analogVarY = abs(ps5.data.analog.stick.ly + 1);
@@ -260,7 +256,7 @@ void ps5ReadOrAuto(void * parameter){//task to read from ps5 controller and writ
           motor4pwm = map(analogVarX , 0, ps5MaxAnalogPos, midUs, maxUs);
       }
 
-      //if is in Quadrant 3 
+      //Left stick down and to the left
       else if((ps5.data.analog.stick.lx > ps5Deadzone) && (ps5.data.analog.stick.ly < -ps5Deadzone)){
           analogVarX = abs(ps5.data.analog.stick.lx + 1);
           analogVarY = abs(ps5.data.analog.stick.ly);
@@ -272,7 +268,7 @@ void ps5ReadOrAuto(void * parameter){//task to read from ps5 controller and writ
           motor4pwm = map(-((analogVarX + analogVarY) / 2) , ps5MaxAnalogNeg, 0, minUs, midUs);      
       }
 
-      //in Between 3 and 4
+      //Left stick straight down
       else if((ps5.data.analog.stick.ly < -ps5Deadzone) && (ps5.data.analog.stick.lx < ps5Deadzone) && (ps5.data.analog.stick.lx > -ps5Deadzone)){
           analogVarX = abs(ps5.data.analog.stick.lx);
           analogVarY = abs(ps5.data.analog.stick.ly + 1);
@@ -284,7 +280,7 @@ void ps5ReadOrAuto(void * parameter){//task to read from ps5 controller and writ
           motor4pwm = map(-analogVarY , ps5MaxAnalogNeg, 0, minUs, midUs);
       }
 
-      //if is in Quadrant 4
+      //Left stick down and to the right
       else if((ps5.data.analog.stick.lx < -ps5Deadzone) && (ps5.data.analog.stick.ly < -ps5Deadzone)){
           analogVarX = abs(ps5.data.analog.stick.lx);
           analogVarY = abs(ps5.data.analog.stick.ly + 1);
@@ -296,26 +292,49 @@ void ps5ReadOrAuto(void * parameter){//task to read from ps5 controller and writ
           motor4pwm = map(analogVarX - analogVarY, ps5MaxAnalogNeg, ps5MaxAnalogPos, minUs, maxUs); 
       }
 
-        else {
-          motor1pwm = midUs;
-          motor2pwm = midUs;
-          motor3pwm = midUs;
-          motor4pwm = midUs;
+      //No Stick movement set motor PWM to stop
+      else {
+        motor1pwm = midUs;
+        motor2pwm = midUs;
+        motor3pwm = midUs;
+        motor4pwm = midUs;
       }
 
-      if (ps5.event.button_down.r1){
+      //L2 to open plow
+      if (ps5.event.button_down.l2){
         servo1pwm = servo1OpenPwm;
       }
 
+      //R2 to close plow
       else if (ps5.event.button_down.r2){
         servo1pwm = servo1ClosedPwm;
+      }
+
+      //R1 to raise plow
+      if (ps5.event.button_down.r1){
+        digitalWrite(plowLiftPin,HIGH);
+      }
+
+      //L1 to lower plow
+      else if (ps5.event.button_down.l1){
+        digitalWrite(plowLiftPin,LOW);
       }
     }
 
     ///End of Manual Mode
 
     //Automatic Mode
+    if (ps5.data.button.options) {
+      mode = 2;
+      prevMillisAuto = millis();
+      }
     else if (mode == 2){
+      if(currentMillis - 20000 < prevMillisAuto){
+
+      }
+
+      else mode = 1;
+
 
 
 
@@ -324,13 +343,11 @@ void ps5ReadOrAuto(void * parameter){//task to read from ps5 controller and writ
     }
     
 
-    if (ranonce){ 
-    Serial.println(xPortGetCoreID());
-    ranonce = false;}
+  
 
 
 
-    if(digitalRead(freezeButtonPin)) prevMillisFreeze = millis(); 
+    if(digitalRead(freezeButtonPin)) prevMillisFreeze = millis();
     isFrozen = (currentMillis - 15000 < prevMillisFreeze);
 
     if(isFrozen){
@@ -352,12 +369,13 @@ void ps5ReadOrAuto(void * parameter){//task to read from ps5 controller and writ
     }
 
     else{
-    motor1.writeMicroseconds(speedPercentage / 100 * constrain(motor1pwm,minUs,maxUs));
-    motor2.writeMicroseconds(speedPercentage / 100 * constrain(motor2pwm,minUs,maxUs));
-    motor3.writeMicroseconds(speedPercentage / 100 * constrain(motor3pwm,minUs,maxUs));
-    motor4.writeMicroseconds(speedPercentage / 100 * constrain(motor4pwm,minUs,maxUs));
+    motor1.writeMicroseconds(constrain(motor1pwm,minUs,maxUs));
+    motor2.writeMicroseconds(constrain(motor2pwm,minUs,maxUs));
+    motor3.writeMicroseconds(constrain(motor3pwm,minUs,maxUs));
+    motor4.writeMicroseconds(constrain(motor4pwm,minUs,maxUs));
     servo1.writeMicroseconds(servo1pwm);
 
+    
     Serial.print("motor1:");
     Serial.print(constrain(motor1pwm,minUs,maxUs));
     Serial.print(" motor2:");
