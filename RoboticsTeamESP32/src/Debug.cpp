@@ -1,6 +1,7 @@
 #include <ps5Controller.h>
 #include <ESP32Servo.h>
 #include <HUSKYLENS.h>
+#include <Wire.h>
 
 bool isNotConnected = true;
 bool ranonce = true;
@@ -8,10 +9,9 @@ bool STATE = LOW;
 bool objectInPlow;
 
 float normalDuration = 300; //TBD normal duration of ultrasonic pulse at floor distance
-unsigned long prevMillisPulse; //last time sensors were pulsed
-unsigned long prevMillisDebounce; //last time sensors were pulsed
-long sensorTrigDelay = 50; //delay between sensor pulses ms
-long sensorDebounce = 500; //Amount of time before sensor will say there is no longer an object ms
+HUSKYLENS huskylens;
+
+
 
 /////////////////////// Pin Setup /////////////////////////////////////
 
@@ -51,6 +51,10 @@ unsigned long fwMoveMillis;
 unsigned long bkMoveMillis;
 unsigned long ccwMoveMillis;
 unsigned long cwMoveMillis;
+unsigned long prevMillisPulse; //last time sensors were pulsed
+unsigned long prevMillisDebounce; //last time sensors were pulsed
+unsigned long sensorTrigDelay = 50; //delay between sensor pulses ms
+unsigned long sensorDebounce = 500; //Amount of time before sensor will say there is no longer an object ms
 
 /////////////////////// Motor/Servo Setup ////////////////////////////
 Servo motor1;
@@ -94,6 +98,8 @@ void setup()
   prevMillisFreeze = millis();
   blinkMillis = millis();
 
+
+
 ///////////
   Serial.begin(115200);
   ps5.begin("bc:c7:46:42:c6:8c");
@@ -132,6 +138,8 @@ void setup()
       NULL,             // Task handle
       1               // Task pinned to core 1
   );
+
+  Wire.begin();
  
 Serial.println("Ready."); //Printing ready to the serial monitor when setup is finished
 }
