@@ -29,6 +29,7 @@ int robotStartArea = 0;//1 for field to right, 0 for field to left
 bool readyToDropFlag = false;
 bool readyForResetFlag = false;
 bool objectGrabbedFlag = false;
+bool firstStartFlag = true;
 
 
 
@@ -95,7 +96,7 @@ int minUs = 1000; //Minumum Limit of PWM (1000)
 int ps5MaxAnalogPos = 125;
 int ps5MaxAnalogNeg = -125;
 int ps5Deadzone = 4;
-int servo1ClosedPwm = 1000;
+int servo1ClosedPwm = 500;
 int servo1OpenPwm = 1800;
 
 ///////////////////// Function Declerations//////////////////////
@@ -331,22 +332,22 @@ void ps5ReadOrAuto(void * parameter){//task to read from ps5 controller and writ
       }
 
       //L2 to open plow
-      if (ps5.event.button_down.l2){
+      if (ps5.event.button_down.r1){
         servo1pwm = servo1OpenPwm;
       }
 
       //R2 to close plow
-      else if (ps5.event.button_down.r2){
+      else if (ps5.data.button.l1){
         servo1pwm = servo1ClosedPwm;
       }
 
       //R1 to raise plow
-      if (ps5.event.button_down.r1){
+      if (ps5.event.button_down.triangle){
         digitalWrite(plowLiftPin,HIGH);
       }
 
       //L1 to lower plow
-      else if (ps5.event.button_down.l1){
+      else if (ps5.event.button_down.cross){
         digitalWrite(plowLiftPin,LOW);
       }
     }
@@ -361,12 +362,32 @@ void ps5ReadOrAuto(void * parameter){//task to read from ps5 controller and writ
       }
     if (mode == 2){
       if(currentMillis - 20000 < prevMillisAuto){
-        
+        Serial.println("flag1");
+        if(firstStartFlag){
 
+          motor1pwm = 1000;
+          motor2pwm = 1950;
+          motor3pwm = 1000;
+          motor4pwm = 1950;
+          firstStartFlag = false;
+          prevMillisMove = millis();
+        }
+
+        if (currentMillis - 2000 > prevMillisMove){
+          motor1pwm = 1500;
+          motor2pwm = 1500;
+          motor3pwm = 1500;
+          motor4pwm = 1500;
+        }
+        
+        
       }
 
        
-      else mode = 1;
+      else{
+      mode = 1;
+      firstStartFlag = true;
+      }
 
 
 
@@ -413,17 +434,6 @@ void ps5ReadOrAuto(void * parameter){//task to read from ps5 controller and writ
     motor3.writeMicroseconds(constrain(motor3pwm,minUs,maxUs));
     motor4.writeMicroseconds(constrain(motor4pwm,minUs,maxUs));
     servo1.writeMicroseconds(servo1pwm);
-
-    
-    Serial.print("motor1:");
-    Serial.print(constrain(motor1pwm,minUs,maxUs));
-    Serial.print(" motor2:");
-    Serial.print(constrain(motor2pwm,minUs,maxUs));
-    Serial.print("motor3:");
-    Serial.print(constrain(motor3pwm,minUs,maxUs));
-    Serial.print(" motor4:");
-    Serial.println(constrain(motor4pwm,minUs,maxUs));
-    digitalWrite(freezeLEDPin,LOW);
     
   }
 
