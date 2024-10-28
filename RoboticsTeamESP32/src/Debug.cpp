@@ -20,7 +20,6 @@ int totalStepNumber = 0;
 bool isMoving = false;
 long stopTime = 50;
 long moveTime = 1000;
-unsigned long prevMillisStop;
 int requestedMove;
 int rotation = 1; //Starts at 1, 2 is 1 turn to the right, 3 is opposite of starting direction, 4 is 1 turn to the left, 
 bool stoppedFlag = false;
@@ -64,14 +63,11 @@ bool plowState = false; //tracks state of plow, either up (true) or down (false)
 
 ///////////////////////////// Millisecond Timer Setup ////////////////////////////////
 unsigned long prevMillisMove;
+unsigned long prevMillisStop;
 unsigned long prevMillisFreeze;
 unsigned long prevMillisAuto;
 unsigned long currentMillis;
 unsigned long blinkMillis;
-unsigned long fwMoveMillis;
-unsigned long bkMoveMillis;
-unsigned long ccwMoveMillis;
-unsigned long cwMoveMillis;
 unsigned long prevMillisPulse; //last time sensors were pulsed
 unsigned long prevMillisDebounce; //last time sensors were pulsed
 long sensorTrigDelay = 50; //delay between sensor pulses ms
@@ -119,7 +115,11 @@ void setup()
   currentMillis = millis();
   prevMillisFreeze = millis();
   blinkMillis = millis();
-
+  prevMillisMove = millis();
+  prevMillisStop = millis();
+  prevMillisDebounce = millis();
+  prevMillisPulse = millis();
+  prevMillisAuto = millis();
 
 
 ///////////
@@ -128,8 +128,8 @@ void setup()
 
 
 
-  motor1.attach(13); //front left motor
-  motor2.attach(12); //front right motor
+  motor1.attach(12); //front left motor
+  motor2.attach(13); //front right motor
   motor3.attach(14); //back left motor
   motor4.attach(25); //back right motor
   servo1.attach(4);  //close open plow servo
@@ -204,24 +204,24 @@ void ps5ReadOrAuto(void * parameter){//task to read from ps5 controller and writ
     if (mode == 1){
 
       //Right stick to the Left
-      if((ps5.data.analog.stick.rx < -ps5Deadzone)){ 
+      if((ps5.data.analog.stick.rx > ps5Deadzone)){ 
           analogVarX = abs(ps5.data.analog.stick.rx);
           
           //Writing pwm signal for motor controllers
           motor1pwm = map(-analogVarX , ps5MaxAnalogNeg, 0, minUs, midUs);
-          motor2pwm = map(-analogVarX , ps5MaxAnalogNeg, 0, minUs, midUs);
-          motor3pwm = map(-analogVarX , ps5MaxAnalogNeg, 0, minUs, midUs);
+          motor2pwm = map(analogVarX , 0, ps5MaxAnalogPos, midUs, maxUs);
+          motor3pwm = map(analogVarX , 0, ps5MaxAnalogPos, midUs, maxUs);
           motor4pwm = map(-analogVarX , ps5MaxAnalogNeg, 0, minUs, midUs);
       }
 
       //Right stick to the right
-      else if((ps5.data.analog.stick.rx > ps5Deadzone)){ 
+      else if((ps5.data.analog.stick.rx < -ps5Deadzone)){ 
         analogVarX = abs(ps5.data.analog.stick.rx);
         
         //Writing pwm signal for motor controllers
         motor1pwm = map(analogVarX , 0, ps5MaxAnalogPos, midUs, maxUs);
-        motor2pwm = map(analogVarX , 0, ps5MaxAnalogPos, midUs, maxUs);
-        motor3pwm = map(analogVarX , 0, ps5MaxAnalogPos, midUs, maxUs);
+        motor2pwm = map(-analogVarX , ps5MaxAnalogNeg, 0, minUs, midUs);
+        motor3pwm = map(-analogVarX , ps5MaxAnalogNeg, 0, minUs, midUs);
         motor4pwm = map(analogVarX , 0, ps5MaxAnalogPos, midUs, maxUs);
       }
 
@@ -324,7 +324,10 @@ void ps5ReadOrAuto(void * parameter){//task to read from ps5 controller and writ
 
       //No Stick movement set motor PWM to stop
       else {
-        stop();
+        motor1pwm = midUs;
+        motor2pwm = midUs;
+        motor3pwm = midUs;
+        motor4pwm = midUs;
       }
 
       //L2 to open plow
@@ -354,144 +357,15 @@ void ps5ReadOrAuto(void * parameter){//task to read from ps5 controller and writ
     if (ps5.data.button.options) {
       mode = 2;
       prevMillisAuto = millis();
+      Serial.println("In Auto");
       }
-    else if (mode == 2){
+    if (mode == 2){
       if(currentMillis - 20000 < prevMillisAuto){
-        if(objectDetectedflag == false) objectDetectedflag = objectDetected();
-
-        
-        if(currentMillis - moveTime < prevMillisMove && seqStartFlag == false){
-          if(objectDetectedflag){
-            
-            if (objectGrabbedFlag == false){
-              servo1pwm = servo1ClosedPwm;
-              objectGrabbedFlag = true;
-            }
-            else if(readyForResetFlag){
-              digitalWrite(plowLiftPin,LOW);
-              readyForResetFlag = false;
-              objectDetectedflag = false;
-              objectGrabbedFlag = false;
-              if(robotStartArea == 1) requestedMove = 4;
-              else requestedMove = 3;
-            }
-            if(xPos > 0){
-              if(rotation == 1)requestedMove = 3;
-              else if(rotation < 4)requestedMove = 4;
-              else requestedMove = 1;
-            }
-            else if(xPos < 0){
-              if(rotation > 2)requestedMove = 3;
-              else if(rotation < 2)requestedMove = 4;
-              else requestedMove = 1;
-            }
-            else if(yPos > 1){
-              if(rotation > 3)requestedMove = 3;
-              else if(rotation < 3)requestedMove = 4;
-              else requestedMove = 1;
-            }
-
-            else if(robotStartArea == 1 && xPos == 0 && yPos == 1 && readyToDropFlag == false){
-              requestedMove = 4;
-              readyToDropFlag = true;
-            }
-
-            else if(robotStartArea == 0 && xPos == 0 && yPos == 1 && readyToDropFlag == false){
-              requestedMove = 3;
-              readyToDropFlag = true;
-            }
-
-            else if(readyToDropFlag = true){
-              servo1pwm = servo1OpenPwm;
-              digitalWrite(plowLiftPin,HIGH);
-              readyToDropFlag = false;
-              readyForResetFlag = true;
-            }
-
-
-          }
-
-          else if( xPos == 0 && yPos == 0 && totalStepNumber == 0)requestedMove = 1;
-          else if(yPos < 5 && xPos == 0) requestedMove = 1;
-
-          else if(yPos >= 5 && xPos == 0){
-            if(robotStartArea == 1)requestedMove = 4;
-            else requestedMove = 3;
-          }
-          else if(yPos >= 5 && xPos == 0 && rotation != 1) requestedMove = 1;
-          else if(xPos != 0 && yPos >= 0){
-            if(robotStartArea == 1)requestedMove = 4;
-            else requestedMove = 3;
-          }
-
-          if(requestedMove == 1){
-            moveTime = 1000;//move forward for 1 second
-
-            if(rotation == 1)yPos++;
-            else if(rotation == 2)xPos++;
-            else if(rotation == 3)yPos--;
-            else if(rotation == 4)xPos--;
-          }
-          else{
-            moveTime = 500; //TBD
-            if(requestedMove == 4)rotation++;
-            else if (requestedMove == 3)rotation--;
-          }
-
-          if(rotation > 4) rotation = 1;
-          else if (rotation < 1) rotation = 4;
-          if(objectDetectedflag) totalStepNumber--;
-          else totalStepNumber++;
-          seqStartFlag = true;
-        }
-
-        else if(currentMillis - moveTime < prevMillisMove){
-          
-          switch (requestedMove)
-          {
-          case 1:
-            fwMove();
-            break;
-          
-          case 2:
-            bwMove();
-            break;
-
-          case 3:
-            ccwTurn();
-            break;
-          
-          case 4:
-            cwTurn();
-            break;
-          
-          default:
-            break;
-          }
-
-
-        }
-        else if(currentMillis - moveTime > prevMillisMove && stoppedFlag == false){
-          prevMillisStop = millis();
-        }
-        else if(currentMillis - stopTime < prevMillisStop){
-          stoppedFlag = true;
-
-        }
-        else {
-          prevMillisMove = millis();
-          stoppedFlag = false;
-          seqStartFlag = false;
-
-        }
-
-        
-
-
         
 
       }
 
+       
       else mode = 1;
 
 
@@ -510,7 +384,11 @@ void ps5ReadOrAuto(void * parameter){//task to read from ps5 controller and writ
     isFrozen = (currentMillis - 15000 < prevMillisFreeze);
 
     if(isFrozen){
-      stop();
+      motor1pwm = midUs;
+      motor2pwm = midUs;
+      motor3pwm = midUs;
+      motor4pwm = midUs;
+    
 
     Serial.print("FROZEN for:");
     Serial.print(currentMillis - prevMillisFreeze);
@@ -537,7 +415,7 @@ void ps5ReadOrAuto(void * parameter){//task to read from ps5 controller and writ
     servo1.writeMicroseconds(servo1pwm);
 
     
-    /*Serial.print("motor1:");
+    Serial.print("motor1:");
     Serial.print(constrain(motor1pwm,minUs,maxUs));
     Serial.print(" motor2:");
     Serial.print(constrain(motor2pwm,minUs,maxUs));
@@ -546,7 +424,7 @@ void ps5ReadOrAuto(void * parameter){//task to read from ps5 controller and writ
     Serial.print(" motor4:");
     Serial.println(constrain(motor4pwm,minUs,maxUs));
     digitalWrite(freezeLEDPin,LOW);
-    */
+    
   }
 
 }
