@@ -1,10 +1,15 @@
 /*
- * ESP32 Servo Example Using Arduino ESP32 Servo Library
- * John K. Bennett
- * March, 2017
- * 
- * This sketch uses the Arduino ESP32 Servo Library to sweep 4 servos in sequence.
- * 
+ Controlling a servo position using a potentiometer (variable resistor)
+ by Michal Rinott <http://people.interaction-ivrea.it/m.rinott>
+
+ modified on 8 Nov 2013
+ by Scott Fitzgerald
+
+ modified for the ESP32 on March 2017
+ by John Bennett
+ 
+ see  http://www.arduino.cc/en/Tutorial/Knob for a description of the original code
+
  * Different servos require different pulse widths to vary servo angle, but the range is 
  * an approximately 500-2500 microsecond pulse every 20ms (50Hz). In general, hobbyist servos
  * sweep 180 degrees, so the lowest number in the published range for a particular servo
@@ -13,7 +18,7 @@
  * 1000us would equal an angle of 0, 1500us would equal 90 degrees, and 2000us would equal 1800
  * degrees.
  * 
- * Circuit:
+ * Circuit: (using an ESP32 Thing from Sparkfun)
  * Servo motors have three wires: power, ground, and signal. The power wire is typically red,
  * the ground wire is typically black or brown, and the signal wire is typically yellow,
  * orange or white. Since the ESP32 can supply limited current at only 3.3V, and servos draw
@@ -23,75 +28,48 @@
  * We could also connect servo power to a separate external
  * power source (as long as we connect all of the grounds (ESP32, servo, and external power).
  * In this example, we just connect ESP32 ground to servo ground. The servo signal pins
- * connect to any available GPIO pins on the ESP32 (in this example, we use pins
- * 22, 19, 23, & 18).
+ * connect to any available GPIO pins on the ESP32 (in this example, we use pin 18.
  * 
- * In this example, we assume four Tower Pro SG90 small servos.
+ * In this example, we assume a Tower Pro SG90 small servo connected to VBat.
  * The published min and max for this servo are 500 and 2400, respectively.
  * These values actually drive the servos a little past 0 and 180, so
  * if you are particular, adjust the min and max values to match your needs.
- * Experimentally, 550 and 2350 are pretty close to 0 and 180.
  */
 
-#include <Arduino.h>
-#include <ESP32Servo.h>
+// Include the ESP32 Arduino Servo Library instead of the original Arduino Servo Library
+#include <ESP32Servo.h> 
 
-// create four servo objects 
-Servo motor1;
-Servo motor2;
-Servo motor3;
-Servo motor4;
-Servo servo1;
-// Published values for SG90 servos; adjust if needed
-int minUs = 1050;
-int maxUs = 1950;
+Servo myservo;  // create servo object to control a servo
 
-// These are all GPIO pins on the ESP32
-// Recommended pins include 2,4,12-19,21-23,25-27,32-33
-// for the ESP32-S2 the GPIO pins are 1-21,26,33-42
-// for the ESP32-S3 the GPIO pins are 1-21,35-45,47-48
-// for the ESP32-C3 the GPIO pins are 1-10,18-21
+// Possible PWM GPIO pins on the ESP32: 0(used by on-board button),2,4,5(used by on-board LED),12-19,21-23,25-27,32-33 
+int servoPin = 13;      // GPIO pin used to connect the servo control (digital out)
+// Possible ADC pins on the ESP32: 0,2,4,12-15,32-39; 34-39 are recommended for analog input
+int potPin = 34;        // GPIO pin used to connect the potentiometer (analog in)
+int ADC_Max = 4096;     // This is the default ADC max value on the ESP32 (12 bit ADC width);
+                        // this width can be set (in low-level oode) from 9-12 bits, for a
+                        // a range of max values of 512-4096
+  
+int val;    // variable to read the value from the analog pin
 
-int motor1Pin = 11;
-int motor2Pin = 12;
-int motor3Pin = 13;
-int motor4Pin = 14;
-int servo1Pin = 4;
-
-ESP32PWM pwm;
-void setup() {
+void setup()
+{
 	// Allow allocation of all timers
 	ESP32PWM::allocateTimer(0);
 	ESP32PWM::allocateTimer(1);
 	ESP32PWM::allocateTimer(2);
 	ESP32PWM::allocateTimer(3);
-	Serial.begin(115200);
-	motor1.setPeriodHertz(50);      // Standard 50hz servo
-	motor2.setPeriodHertz(50);      // Standard 50hz servo
-	motor3.setPeriodHertz(50);      // Standard 50hz servo
-	motor4.setPeriodHertz(50);      // Standard 50hz servo
-	//servo1.setPeriodHertz(50);      // Standard 50hz servo
-
-
+  myservo.setPeriodHertz(50);// Standard 50hz servo
+  myservo.attach(servoPin, 500, 2400);   // attaches the servo on pin 18 to the servo object
+                                         // using SG90 servo min/max of 500us and 2400us
+                                         // for MG995 large servo, use 1000us and 2000us,
+                                         // which are the defaults, so this line could be
+                                         // "myservo.attach(servoPin);"
 }
 
 void loop() {
-	motor1.attach(motor1Pin, minUs, maxUs);
-	motor2.attach(motor2Pin, minUs, maxUs);
-	motor3.attach(motor3Pin, minUs, maxUs);
-	motor4.attach(motor4Pin, minUs, maxUs);
-
-	servo1.attach(servo1Pin, minUs, maxUs);
-
-	pwm.attachPin(27, 10000);//10khz
-
-
-
-
-	motor1.detach();
-	motor2.detach();;
-	motor3.detach();
-	motor4.detach();
-	pwm.detachPin(27);
-
+  val = analogRead(potPin);            // read the value of the potentiometer (value between 0 and 1023)
+  val = map(val, 0, ADC_Max, 0, 180);     // scale it to use it with the servo (value between 0 and 180)
+  myservo.write(val); 
+  Serial.println(val);                 // set the servo position according to the scaled value
+  delay(200);                          // wait for the servo to get there
 }
